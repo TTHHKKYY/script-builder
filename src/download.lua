@@ -4,7 +4,7 @@ print(Http:GetAsync("https://api.github.com/zen"))
 
 local LocalPlayer = owner
 
--- destroy the last interface, if there was.
+-- destroy the last interface, if there was one.
 local LastInterface = LocalPlayer.PlayerGui:FindFirstChild("RepositoryIndex") do
 	if LastInterface then
 		LastInterface:Destroy()
