@@ -7,7 +7,7 @@ local Sound = Instance.new("Sound")
 local Animation = Instance.new("Animation")
 local Sounds =
 {
-	2902913,
+	29029134,
 	29029143,
 	29029154,
 	29029170,
