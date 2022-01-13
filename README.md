@@ -1,4 +1,4 @@
-#Command Usage
+## Command Usage
 ```
 /githelp
 ```
