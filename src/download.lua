@@ -79,7 +79,7 @@ LocalPlayer.Chatted:Connect(function(Message)
 		end
 	end
 	
-	if Command == "/getbranch" then
+	if Command == "/getmain" then
 		IsValid()
 		
 		local Repository = Http:GetAsync(string.format("https://api.github.com/repos/%s/%s",User,Repo))
