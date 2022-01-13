@@ -4,8 +4,10 @@ print(Http:GetAsync("https://api.github.com/zen"))
 print("Say /githelp for commands and usage.")
 
 local LocalPlayer = owner
+
 local User = ""
 local Repo = ""
+local Branch = ""
 
 LocalPlayer.Chatted:Connect(function(Message)
 	local Arguments = string.split(Message," ")
@@ -18,7 +20,8 @@ LocalPlayer.Chatted:Connect(function(Message)
 		print("/user NAME")
 		print("/repo NAME")
 		print("/index [PATH]")
-		print("/loadfile PATH")
+		print("/loadfile BRANCH/PATH")
+		print("/getmain")
 		
 		print("Current user: " .. User)
 		print("Current repository: " .. Repo)
@@ -72,5 +75,15 @@ LocalPlayer.Chatted:Connect(function(Message)
 		else
 			error(Error)
 		end
+	end
+	
+	if Command == "/getbranch" then
+		assert(User ~= "","User is not set.")
+		assert(Repo ~= "","Repository is not set.")
+		
+		local Repository = Http:GetAsync(string.format("https://api.github.com/repos/%s/%s",User,Repo))
+		local RepisotryData = Http:JSONDecode(Repository)
+		
+		print("The default branch is " .. RepisotryData["default_branch"])
 	end
 end)
