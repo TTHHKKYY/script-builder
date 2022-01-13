@@ -3,7 +3,7 @@ local Http = game:GetService("HttpService")
 print(Http:GetAsync("https://api.github.com/zen"))
 
 local LocalPlayer = owner
-local Owner = ""
+local User = ""
 local Repo = ""
 
 LocalPlayer.Chatted:Connect(function(Message)
@@ -17,9 +17,9 @@ LocalPlayer.Chatted:Connect(function(Message)
 		print("/user NAME")
 		print("/repo NAME")
 		print("/index [PATH]")
-		print("/loadpath PATH")
+		print("/loadfile PATH")
 		
-		print("Current user: " .. Owner)
+		print("Current user: " .. User)
 		print("Current repository: " .. Repo)
 	end
 	
@@ -27,7 +27,7 @@ LocalPlayer.Chatted:Connect(function(Message)
 		assert(Value,"Missing username.")
 		print("Set user to " .. Value)
 		
-		Owner = Value
+		User = Value
 	end
 	if Command == "/repo" then
 		assert(Value,"Missing repository name.")
@@ -37,10 +37,10 @@ LocalPlayer.Chatted:Connect(function(Message)
 	end
 	
 	if Command == "/index" then
-		assert(Owner ~= "","User is not set.")
+		assert(User ~= "","User is not set.")
 		assert(Repo ~= "","Repository is not set.")
 		
-		local Index = Http:GetAsync(string.format("https://api.github.com/repos/%s/%s/contents/%s",Owner,Repo,Value or "/"))
+		local Index = Http:GetAsync(string.format("https://api.github.com/repos/%s/%s/contents/%s",User,Repo,Value or "/"))
 		local IndexData = Http:JSONDecode(Index)
 		
 		for _,File in pairs(IndexData) do
@@ -48,12 +48,12 @@ LocalPlayer.Chatted:Connect(function(Message)
 		end
 	end
 	
-	if Command == "/loadpath" then
-		assert(Owner ~= "","User is not set.")
+	if Command == "/loadfile" then
+		assert(User ~= "","User is not set.")
 		assert(Repo ~= "","Repository is not set.")
 		assert(Value,"Path is missing.")
 		
-		local Data = Http:GetAsync(string.format("https://raw.githubusercontent.com/%s/%s/%s",Owner,Repo,Value))
+		local Data = Http:GetAsync(string.format("https://raw.githubusercontent.com/%s/%s/%s",User,Repo,Value))
 		local Compiled,Error = loadstring(Data)
 		
 		if Compiled then
