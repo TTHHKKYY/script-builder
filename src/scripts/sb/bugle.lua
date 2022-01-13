@@ -1,4 +1,4 @@
-local LocalPlayer = Owner
+local LocalPlayer = owner
 
 local Tool = Instance.new("Tool")
 local Handle = Instance.new("Part")
