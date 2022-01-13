@@ -5,12 +5,20 @@ print("Say /githelp for commands and usage.")
 
 local LocalPlayer = owner
 
-local User = ""
-local Repo = ""
+-- setup global variables, to avoid data loss after using g/ns
+if not _G[LocalPlayer] then
+	_G[LocalPlayer] = {}
+end
+if not _G[LocalPlayer].GithubUser and not _G[LocalPlayer].GithubRepo then
+	_G[LocalPlayer].GithubUser = ""
+	_G[LocalPlayer].GithubRepo = ""
+end
+
+local Settings = _G[LocalPlayer]
 
 local function IsValid()
-	assert(User ~= "","User is not set.")
-	assert(Repo ~= "","Repository is not set.")
+	assert(Settings.GithubUser ~= "","User is not set.")
+	assert(Settings.GithubRepo ~= "","Repository is not set.")
 end
 
 LocalPlayer.Chatted:Connect(function(Message)
@@ -27,28 +35,28 @@ LocalPlayer.Chatted:Connect(function(Message)
 		print("/loadfile BRANCH/PATH")
 		print("/getmain")
 		
-		print("Current user: " .. User)
-		print("Current repository: " .. Repo)
+		print("Current user: " .. Settings.GithubUser)
+		print("Current repository: " .. Settings.GithubRepo)
 	end
 	
 	if Command == "/user" then
 		assert(Value,"Missing username.")
 		print("Set user to " .. Value)
 		
-		User = Value
+		Settings.GithubUser = Value
 	end
 	if Command == "/repo" then
 		assert(Value,"Missing repository name.")
 		print("Set repository to " .. Value)
 		
-		Repo = Value
+		Settings.GithubRepo = Value
 	end
 	
 	if Command == "/index" then
 		IsValid()
 		
 		function Recurse(Path)
-			local List = Http:GetAsync(string.format("https://api.github.com/repos/%s/%s/contents/%s",User,Repo,Path))
+			local List = Http:GetAsync(string.format("https://api.github.com/repos/%s/%s/contents/%s",Settings.GithubUser,Settings.GithubRepo,Path))
 			local ListData = Http:JSONDecode(List)
 			
 			for _,File in pairs(ListData) do
@@ -62,6 +70,7 @@ LocalPlayer.Chatted:Connect(function(Message)
 			end
 		end
 		
+		print("Index of the default branch:")
 		Recurse(Value or "/")
 	end
 	
@@ -69,7 +78,7 @@ LocalPlayer.Chatted:Connect(function(Message)
 		IsValid()
 		assert(Value,"Path is missing.")
 		
-		local Data = Http:GetAsync(string.format("https://raw.githubusercontent.com/%s/%s/%s",User,Repo,Value))
+		local Data = Http:GetAsync(string.format("https://raw.githubusercontent.com/%s/%s/%s",Settings.GithubUser,Settings.GithubRepo,Value))
 		local Compiled,Error = loadstring(Data)
 		
 		if Compiled then
@@ -82,7 +91,7 @@ LocalPlayer.Chatted:Connect(function(Message)
 	if Command == "/getmain" then
 		IsValid()
 		
-		local Repository = Http:GetAsync(string.format("https://api.github.com/repos/%s/%s",User,Repo))
+		local Repository = Http:GetAsync(string.format("https://api.github.com/repos/%s/%s",Settings.GithubUser,Settings.GithubRepo))
 		local RepisotryData = Http:JSONDecode(Repository)
 		
 		print("The default branch is " .. RepisotryData["default_branch"])
