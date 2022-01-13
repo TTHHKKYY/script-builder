@@ -7,7 +7,11 @@ local LocalPlayer = owner
 
 local User = ""
 local Repo = ""
-local Branch = ""
+
+local function IsValid()
+	assert(User ~= "","User is not set.")
+	assert(Repo ~= "","Repository is not set.")
+end
 
 LocalPlayer.Chatted:Connect(function(Message)
 	local Arguments = string.split(Message," ")
@@ -41,8 +45,7 @@ LocalPlayer.Chatted:Connect(function(Message)
 	end
 	
 	if Command == "/index" then
-		assert(User ~= "","User is not set.")
-		assert(Repo ~= "","Repository is not set.")
+		IsValid()
 		
 		function Recurse(Path)
 			local List = Http:GetAsync(string.format("https://api.github.com/repos/%s/%s/contents/%s",User,Repo,Path))
@@ -63,8 +66,7 @@ LocalPlayer.Chatted:Connect(function(Message)
 	end
 	
 	if Command == "/loadfile" then
-		assert(User ~= "","User is not set.")
-		assert(Repo ~= "","Repository is not set.")
+		IsValid()
 		assert(Value,"Path is missing.")
 		
 		local Data = Http:GetAsync(string.format("https://raw.githubusercontent.com/%s/%s/%s",User,Repo,Value))
@@ -78,8 +80,7 @@ LocalPlayer.Chatted:Connect(function(Message)
 	end
 	
 	if Command == "/getbranch" then
-		assert(User ~= "","User is not set.")
-		assert(Repo ~= "","Repository is not set.")
+		IsValid()
 		
 		local Repository = Http:GetAsync(string.format("https://api.github.com/repos/%s/%s",User,Repo))
 		local RepisotryData = Http:JSONDecode(Repository)
