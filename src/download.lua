@@ -1,6 +1,7 @@
 local Http = game:GetService("HttpService")
 
 print(Http:GetAsync("https://api.github.com/zen"))
+print("Say /githelp for commands and usage.")
 
 local LocalPlayer = owner
 local User = ""
@@ -40,12 +41,22 @@ LocalPlayer.Chatted:Connect(function(Message)
 		assert(User ~= "","User is not set.")
 		assert(Repo ~= "","Repository is not set.")
 		
-		local Index = Http:GetAsync(string.format("https://api.github.com/repos/%s/%s/contents/%s",User,Repo,Value or "/"))
-		local IndexData = Http:JSONDecode(Index)
-		
-		for _,File in pairs(IndexData) do
-			print("/" .. File["path"])
+		function Recurse(Path)
+			local List = Http:GetAsync(string.format("https://api.github.com/repos/%s/%s/contents/%s",User,Repo,Path))
+			local ListData = Http:JSONDecode(List)
+			
+			for _,File in pairs(ListData) do
+				if File["type"] == "dir" then
+					print("/" .. File["path"] .. "/")
+					Recurse(File["path"])
+				end
+				if File["type"] == "file" then
+					print("/" .. File["path"])
+				end
+			end
 		end
+		
+		Recurse(Value or "/")
 	end
 	
 	if Command == "/loadfile" then
