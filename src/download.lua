@@ -32,9 +32,11 @@ LocalPlayer.Chatted:Connect(function(Message)
 		print("/user NAME")
 		print("/repo NAME")
 		print("/index [PATH]")
-		print("/loadfile BRANCH/PATH")
+		print("/load BRANCH/PATH")
+		print("/loadcl BRANCH/PATH")
 		print("/getmain")
 		
+		print("") -- newline
 		print("Current user: " .. Settings.GithubUser)
 		print("Current repository: " .. Settings.GithubRepo)
 	end
@@ -74,17 +76,20 @@ LocalPlayer.Chatted:Connect(function(Message)
 		Recurse(Value or "/")
 	end
 	
-	if Command == "/loadfile" then
+	if Command == "/load" or Command == "/loadcl" then
 		IsValid()
 		assert(Value,"Path is missing.")
 		
 		local Data = Http:GetAsync(string.format("https://raw.githubusercontent.com/%s/%s/%s",Settings.GithubUser,Settings.GithubRepo,Value))
-		local Compiled,Error = loadstring(Data)
 		
-		if Compiled then
-			Compiled()
-		else
-			error(Error)
+		-- server
+		if Command == "/load" then
+			NS(Data,workspace)
+		end
+		
+		-- client
+		if Command == "/loadcl" then
+			NLS(Data,LocalPlayer.Backpack)
 		end
 	end
 	

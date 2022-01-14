@@ -20,9 +20,14 @@ Sets the repository to search, or load files from.
 List every file in this repository, recursing through directories.
 
 ```
-/loadfile BRANCH/PATH
+/load BRANCH/PATH
 ```
-Load a file from this branch in the repository.
+Run a file from this branch on the **server**.
+
+```
+/loadcl BRANCH/PATH
+```
+Run a file from this branch on the **client**.
 
 ```
 /getmain
