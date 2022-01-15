@@ -1,3 +1,9 @@
+--[[
+	package-based version of download.lua
+
+	authors: @rwilliaise @TTHHKKYY
+]]
+
 local Http = game:GetService("HttpService")
 
 print(Http:GetAsync("https://api.github.com/zen"))
@@ -9,17 +15,57 @@ local LocalPlayer = owner
 if not _G[LocalPlayer] then
 	_G[LocalPlayer] = {}
 end
-if not _G[LocalPlayer].GithubUser and not _G[LocalPlayer].GithubRepo then
-	_G[LocalPlayer].GithubUser = ""
+if not _G[LocalPlayer].GithubRepo then
 	_G[LocalPlayer].GithubRepo = ""
 end
 
 local Settings = _G[LocalPlayer]
 
 local function IsValid()
-	assert(Settings.GithubUser ~= "","User is not set.")
 	assert(Settings.GithubRepo ~= "","Repository is not set.")
 end
+
+---- package management
+
+local function GetPkgs()
+
+	function Recurse(Path)
+		local List = Http:GetAsync(string.format("https://api.github.com/repos/%s/contents/%s",Settings.GithubRepo,Path))
+		local ListData = Http:JSONDecode(List)
+		
+		for _,File in pairs(ListData) do
+			if File["type"] == "dir" then
+				print("/" .. File["path"] .. "/")
+				Recurse(File["path"])
+			end
+			if File["type"] == "file" then
+				print("/" .. File["path"])
+			end
+		end
+	end
+	
+	print("Index of the default branch:")
+	Recurse(Value or "/")
+end
+
+local function ResolvePkg()
+
+end
+
+local function Fetch(Path)
+	return Http:GetAsync(string.format("https://raw.githubusercontent.com/%s/%s"), Settings.GithubRepo, Path)
+end
+
+local stdlibs = Fetch("packages/src/download.lua")
+
+local function PrependLibs(script)
+	local start = "local PKG_ROOT = \"" .. Settings.GithubRepo "\"\n"
+	start = start .. stdlibs
+
+	return start .. script
+end
+
+---- end of package management
 
 LocalPlayer.Chatted:Connect(function(Message)
 	local Arguments = string.split(Message," ")
@@ -29,26 +75,35 @@ LocalPlayer.Chatted:Connect(function(Message)
 	
 	-- /help is already in use by the default chat scripts
 	if Command == "/githelp" then
-		print("/user NAME")
-		print("/repo NAME")
+		print("/repo USER/NAME")
+		print("\tsets the current repository")
 		print("/index [PATH]")
-		print("/load BRANCH/PATH")
-		print("/loadcl BRANCH/PATH")
+		print("\tlist all files under PATH or root")
+		print("/findpkg [PATH]")
+		print("\tfind all packages under PATH or root")
+		print("/load PKG")
+		print("\tloads and runs a package server-side")
+		print("/loadcl PKG")
+		print("\tloads and runs a package client-side")
 		print("/getmain")
+		print("\tfetches the default branch")
 		
 		print("") -- newline
-		print("Current user: " .. Settings.GithubUser)
 		print("Current repository: " .. Settings.GithubRepo)
 	end
-	
-	if Command == "/user" then
-		assert(Value,"Missing username.")
-		print("Set user to " .. Value)
-		
-		Settings.GithubUser = Value
-	end
+
 	if Command == "/repo" then
 		assert(Value,"Missing repository name.")
+
+		local Split = string.split(Value, "/")
+		assert(#Split == 2, "Invalid repo!")
+
+		local Repository = Http:GetAsync(string.format("https://api.github.com/repos/%s",Value))
+
+		if Repository.message == "Not Found" then
+			error("Repository not found.")
+		end
+
 		print("Set repository to " .. Value)
 		
 		Settings.GithubRepo = Value
@@ -57,8 +112,30 @@ LocalPlayer.Chatted:Connect(function(Message)
 	if Command == "/index" then
 		IsValid()
 		
+		local function Recurse(Path)
+			local List = Http:GetAsync(string.format("https://api.github.com/repos/%s/contents/%s",Settings.GithubRepo,Path))
+			local ListData = Http:JSONDecode(List)
+			
+			for _,File in pairs(ListData) do
+				if File["type"] == "dir" then
+					print("/" .. File["path"] .. "/")
+					Recurse(File["path"])
+				end
+				if File["type"] == "file" then
+					print("/" .. File["path"])
+				end
+			end
+		end
+		
+		print("Index of the default branch:")
+		Recurse(Value or "/")
+	end
+
+	if Command == "/findpkg" then
+		IsValid()
+
 		function Recurse(Path)
-			local List = Http:GetAsync(string.format("https://api.github.com/repos/%s/%s/contents/%s",Settings.GithubUser,Settings.GithubRepo,Path))
+			local List = Http:GetAsync(string.format("https://api.github.com/repos/%s/contents/%s",Settings.GithubRepo,Path))
 			local ListData = Http:JSONDecode(List)
 			
 			for _,File in pairs(ListData) do
@@ -80,7 +157,7 @@ LocalPlayer.Chatted:Connect(function(Message)
 		IsValid()
 		assert(Value,"Path is missing.")
 		
-		local Data = Http:GetAsync(string.format("https://raw.githubusercontent.com/%s/%s/%s",Settings.GithubUser,Settings.GithubRepo,Value))
+		local Data = Fetch(Value)
 		
 		-- server
 		if Command == "/load" then
@@ -96,8 +173,8 @@ LocalPlayer.Chatted:Connect(function(Message)
 	if Command == "/getmain" then
 		IsValid()
 		
-		local Repository = Http:GetAsync(string.format("https://api.github.com/repos/%s/%s",Settings.GithubUser,Settings.GithubRepo))
-		local RepisotryData = Http:JSONDecode(Repository)
+		local Repository = Http:GetAsync(string.format("https://api.github.com/repos/%s",Settings.GithubRepo))
+		local RepositoryData = Http:JSONDecode(Repository)
 		
 		print("The default branch is " .. RepisotryData["default_branch"])
 	end
