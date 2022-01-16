@@ -2,11 +2,15 @@
 	package-based version of download.lua
 
 	example download.json:
-
 	{
 		"name": "test-pkg",
-		"main": "main.lua"
+		"main": "main.lua",
+		"dependencies": {
+			"Black-Mesas/sb-pkgs": "helper-lib"
+		}
 	}
+
+	this will allow you to access helper-lib 
 
 	authors: @rwilliaise @TTHHKKYY
 ]]
@@ -22,6 +26,7 @@ local LocalPlayer = owner
 _G[LocalPlayer] = _G[LocalPlayer] or {}
 _G[LocalPlayer].GithubRepo = _G[LocalPlayer].GithubRepo or ""
 _G[LocalPlayer].RepoIndex = _G[LocalPlayer].RepoIndex or {}
+_G[LocalPlayer].FetchIndex = _G[LocalPlayer].FetchIndex or {}
 
 local Settings = _G[LocalPlayer]
 
@@ -33,8 +38,22 @@ end
 
 ---- package management
 
-local function Fetch(Path, Repo)
-	return Http:GetAsync(string.format("https://raw.githubusercontent.com/%s/%s", Repo or Settings.GithubRepo, Path))
+local function Fetch(Path, Repo, NoCache)
+	if (not NoCache) and Settings.FetchIndex[Repo] and Settings.FetchIndex[Repo][Path] then
+		local cache = Settings.FetchIndex[Repo][Path]
+
+		if os.clock() - cache.TTD > 0 then
+			Settings.FetchIndex[Repo][Path] = nil
+		else
+			return cache.Data
+		end
+	end
+	local out = Http:GetAsync(string.format("https://raw.githubusercontent.com/%s/%s", Repo or Settings.GithubRepo, Path))
+
+	Settings.FetchIndex[Repo] = Settings.FetchIndex[Repo] or {}
+	Settings.FetchIndex[Repo][Path] = { TTD = os.clock() + 120, Data = out }
+
+	return out
 end
 
 local stdlibs = Fetch("packages/src/stdlibs.lua", "TTHHKKYY/script-builder")
@@ -213,29 +232,37 @@ local function RunPkg(name, branch)
 		end
 	end
 
-	local function RecurseDependencies(Child, Repo, Root)
+	local function RecurseDependencies(Child, Branch, Repo, Root)
 		print("Downloading package " .. Child.Name)
 
-		local Branch = GetDefaultBranch(Repo)
+		Branch = Branch or GetDefaultBranch(Repo)
 		local Contents = GetContents(Child.Parent, Branch, Repo)
 
 		for _, File in pairs(Contents) do
 			ProcessLib(File, Repo, Branch, if Root then nil else Child.Name)
 		end
 
-		if Child.dependencies then
-			for k, v in pairs(Child.dependencies) do
-				local dependencyPackages = GetPkgs("/", nil, k)
+		if Child.Data.dependencies then
+			for drepo, dpkg in pairs(Child.Data.dependencies) do
+				local searchRepo, searchBranch
+				local split = string.split(drepo, "#")
+		
+				searchRepo = split[1]
+				if #split0 > 1 then
+					searchBranch = split[2]
+				end
 
-				local dependency = dependencyPackages[v]
+				local dependencyPackages = GetPkgs("/", searchBranch, searchRepo)
+
+				local dependency = dependencyPackages[dpkg]
 				if dependency then
-					RecurseDependencies(dependency, k)
+					RecurseDependencies(dependency, searchBranch, searchRepo)
 				end
 			end
 		end
 	end
 
-	RecurseDependencies(Pkg, Settings.GithubRepo, true)
+	RecurseDependencies(Pkg, nil, Settings.GithubRepo, true)
 
 	local Runnable = PrependLibs({Source = MainData, Path = Main.FullPath, PackageName = name}, libs)
 
@@ -255,7 +282,7 @@ LocalPlayer.Chatted:Connect(function(Message)
 		print("/repo USER/NAME")
 		print("   sets the current repository")
 		print("/cc USER/NAME[#BRANCH]")
-		print("   clear cache of repository [and branch]")
+		print("   clear cache of repository [and branch] (expensive!)")
 		print("/index PATH")
 		print("   list all files under PATH or root")
 		print("/findpkg PATH")
@@ -288,6 +315,18 @@ LocalPlayer.Chatted:Connect(function(Message)
 		Settings.GithubRepo = Value
 	end
 	
+	if Command == "/cc" then
+		local repo, branch
+		local split0 = string.split(Value, "#")
+
+		repo = split0[1]
+		if #split0 > 1 then
+			branch = split0[2]
+		end
+
+
+	end
+
 	if Command == "/index" then
 		IsValid()
 		
