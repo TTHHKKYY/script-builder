@@ -4,7 +4,7 @@
 	example download.json:
 
 	{
-		"name": "farding",
+		"name": "test-pkg",
 		"main": "main.lua"
 	}
 
@@ -19,12 +19,9 @@ print("Say /githelp for commands and usage.")
 local LocalPlayer = owner
 
 -- setup global variables, to avoid data loss after using g/ns
-if not _G[LocalPlayer] then
-	_G[LocalPlayer] = {}
-end
-if not _G[LocalPlayer].GithubRepo then
-	_G[LocalPlayer].GithubRepo = ""
-end
+_G[LocalPlayer] = _G[LocalPlayer] or {}
+_G[LocalPlayer].GithubRepo = _G[LocalPlayer].GithubRepo or ""
+_G[LocalPlayer].RepoIndex = _G[LocalPlayer].RepoIndex or {}
 
 local Settings = _G[LocalPlayer]
 
@@ -46,7 +43,7 @@ local function GetDefaultBranch(Repo)
 	Repo = Repo or Settings.GithubRepo
 	local Cached = RepoCache[Repo]
 	if Cached then
-		if os.clock() - Cached.TTL > 0 then
+		if os.clock() - Cached.TTD > 0 then
 			RepoCache[Repo] = nil
 		elseif Cached.DefaultBranch then
 			return Cached.DefaultBranch
@@ -56,73 +53,98 @@ local function GetDefaultBranch(Repo)
 	local Repository = Http:GetAsync(string.format("https://api.github.com/repos/%s", Repo or Settings.GithubRepo))
 	local RepositoryData = Http:JSONDecode(Repository)
 
-	RepoCache[Repo] = Cached or {TTL = os.clock() + 60}
+	RepoCache[Repo] = Cached or {TTD = os.clock() + 120}
 	RepoCache[Repo].DefaultBranch = RepositoryData["default_branch"]
 
 	return RepoCache[Repo].DefaultBranch
 end
 
 local function GetContents(RepoStart, Branch, Repo)
-	local Out = {}
 
 	Branch = Branch or GetDefaultBranch(Repo)
 	RepoStart = RepoStart or "/"
 
-	local Length = #RepoStart + 2
+	local FileSystem
 
-	local function Recurse(StartPath)
-		local List = Http:GetAsync(string.format("https://api.github.com/repos/%s/contents/%s",Repo,StartPath))
-		local ListData = Http:JSONDecode(List)
+	if Settings.RepoIndex[Repo] and Settings.RepoIndex[Repo][Branch] then
+		local cached = Settings.RepoIndex[Repo][Branch] 
 
-		for _, File in pairs(ListData) do
-			if type(File) ~= "table" then continue end
-			local Path = File["path"]
-			local Name = File["name"]
-			if File["type"] == "dir" then
-				table.insert(Out, { Name = Name, Path = Path:sub(Length, -1), FullPath = Path, Type = "dir", Parent = StartPath })
-				Recurse(Path)
-			end
-			if File["type"] == "file" then
-				table.insert(Out, { Name = Name, Path = Path:sub(Length, -1), FullPath = Path, Type = "file", Parent = StartPath, Data = Fetch(Branch .. "/" .. Path) })
-				Recurse(Path)
-			end
+		if os.clock() - cached.TTD > 0 then
+			Settings.RepoIndex[Repo][Branch] = nil
 		end
 	end
 
-	Recurse(RepoStart)
+	if Settings.RepoIndex[Repo] and Settings.RepoIndex[Repo][Branch] then
+		FileSystem = Settings.RepoIndex[Repo][Branch]
+	else
+		FileSystem = {
+			TTD = os.clock() + 3600,
+			Files = {}
+		}
+	
+		local function Recurse(StartPath, Parent)
+			local List = Http:GetAsync(string.format("https://api.github.com/repos/%s/contents/%s",Repo,StartPath))
+			local ListData = Http:JSONDecode(List)
 
-	return Out
+			for _, File in pairs(ListData) do
+				if type(File) ~= "table" then continue end
+				local Path = File["path"]
+				local Name = File["name"]
+				if File["type"] == "dir" then
+					local outFile = { Name = Name, FullPath = Path, Type = "dir", Parent = StartPath }
+					FileSystem.Files[Path] = outFile
+	
+					Recurse(Path)
+				end
+				if File["type"] == "file" then
+					local outFile = { Name = Name, FullPath = Path, Type = "file", Parent = StartPath }
+					FileSystem.Files[Path] = outFile
+				end
+			end
+		end
+
+		Recurse("")
+
+		Settings.RepoIndex[Repo] = Settings.RepoIndex[Repo] or {}
+		Settings.RepoIndex[Repo][Branch] = FileSystem
+	end
+
+	if not RepoStart:find("/$") then
+		RepoStart = RepoStart .. "/" -- trailing slash ALWAYS
+	end
+	
+	local Out = {}
+
+	for _, v in pairs(FileSystem.Files) do
+		if #v.FullPath < #RepoStart then continue end
+		for i = 1, #RepoStart do
+			if v.FullPath:sub(i, i) ~= RepoStart:sub(i, i) then
+				continue
+			end
+		end
+
+		table.insert(Out, { Name = v.Name, FullPath = v.FullPath, Path = v.FullPath:sub(#RepoStart), Type = v.Type, Parent = v.Parent })
+	end
+
+	return FileSystem.Files
 end
 
 local function GetPkgs(StartPath, Branch, Repo)
 	local Packages = {}
 
-	Repo = Repo or Settings.GithubRepo
-	Branch = Branch or GetDefaultBranch(Repo)
-	StartPath = StartPath or "/"
+	local Contents = GetContents(StartPath, Branch, Repo)
 
-	local Length = #StartPath
+	for _, v in pairs(Contents) do
+		if v.Name == "download.json" and v.Type == "file" then
+			local path = File.FullPath
+			local name = "download.json"
+			local data = Http:JSONDecode(Fetch(Branch .. "/" .. path))
 
-	local function Recurse(Path, Parent)
-		local List = Http:GetAsync(string.format("https://api.github.com/repos/%s/contents/%s?ref=%s",Repo,Path,Branch))
-		local ListData = Http:JSONDecode(List)
-		
-		for _,File in pairs(ListData) do
-			if File["type"] == "dir" then
-				Recurse(File["path"])
-			end
-			if File["type"] == "file" and File["name"] == "download.json" then
-				local path = File["path"]
-				local name = "download.json"
-				local data = Http:JSONDecode(Fetch(Branch .. "/" .. path))
-
-				if data and data.name then
-					Packages[data.name] = { Name = data.name, Path = path:sub(Length, -1), Type = "file", Parent = Path, Data = data }
-				end
+			if data and data.name then
+				table.insert(Packages, { Name = data.name, FullPath = v.FullPath, Path = v.Path, Parent = v.Parent, Data = data })
 			end
 		end
 	end
-	Recurse(StartPath)
 
 	return Packages
 end
@@ -146,7 +168,9 @@ local function PrependLibs(target, libs)
 	return start .. target.Source
 end
 
-local function RunPkg(name)
+local function RunPkg(name, branch)
+	branch = branch or GetDefaultBranch(Settings.GithubRepo)
+
 	local Pkgs = GetPkgs()
 	local Pkg = Pkgs[name]
 
@@ -154,7 +178,7 @@ local function RunPkg(name)
 	assert(Pkg.Data, "Malformed package " .. name)
 	assert(Pkg.Data.main, "Can't run package " .. name)
 
-	local PkgContents = GetContents(Pkg.Parent, nil, Settings.GithubRepo)
+	local PkgContents = GetContents(Pkg.Parent, branch, Settings.GithubRepo)
 	local Main
 
 	for _, v in pairs(PkgContents) do
@@ -164,6 +188,8 @@ local function RunPkg(name)
 	end
 
 	assert(Main, Pkg.Data.main .. " not found!")
+
+	local MainData = Fetch(branch .. "/" .. Main.FullPath)
 
 	local libs = {}
 
@@ -203,7 +229,6 @@ local function RunPkg(name)
 	RecurseDependencies(Pkg, Settings.GithubRepo, true)
 
 	local Runnable = PrependLibs({Source = Main.Data, Path = Main.FullPath, PackageName = name}, libs)
-
 	local split = Runnable:split("\n")
 
 	for i = 1, #split do
@@ -224,17 +249,19 @@ LocalPlayer.Chatted:Connect(function(Message)
 	-- /help is already in use by the default chat scripts
 	if Command == "/githelp" then
 		print("/repo USER/NAME")
-		print("\tsets the current repository")
+		print("   sets the current repository")
+		print("/cc USER/NAME[#BRANCH]")
+		print("   clear cache of repository [and branch]")
 		print("/index PATH")
-		print("\tlist all files under PATH or root")
+		print("   list all files under PATH or root")
 		print("/findpkg PATH")
-		print("\tfind all packages under PATH or root")
+		print("   find all packages under PATH or root")
 		print("/load PKG")
-		print("\tloads and runs a package server-side")
+		print("   loads and runs a package server-side")
 		print("/loadcl PKG")
-		print("\tloads and runs a package client-side")
+		print("   loads and runs a package client-side")
 		print("/getmain")
-		print("\tfetches the default branch")
+		print("   fetches the default branch")
 		
 		print("") -- newline
 		print("Current repository: " .. Settings.GithubRepo)
@@ -287,7 +314,7 @@ LocalPlayer.Chatted:Connect(function(Message)
 		for _, v in pairs(Packages) do
 			if v.Name and v.Data then
 				print(v.Name)
-				print("\t" .. (v.Data.description or "No description provided."))
+				print("\t" .. (v.Data.desc or "No description provided."))
 			end
 		end
 	end
