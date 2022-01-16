@@ -22,7 +22,7 @@ local require = function(module)
     if foundScript then
         -- locals transfer over from the original main.lua script (which is sort of bad but shhh)
         local start = "local PKG_ROOT = \"" .. foundScript.Repo .. "\"\n"
-        start = start .. "local PKG_NAME = \"" .. foundTarget.Parent .. "\"\n"
+        start = start .. "local PKG_NAME = \"" .. foundScript.Parent .. "\"\n"
         start = start .. "local PATH = \"" .. foundScript.Path .. "\"\n"
 
         return loadstring(start .. foundScript.Source)()
