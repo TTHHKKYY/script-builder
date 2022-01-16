@@ -343,7 +343,7 @@ LocalPlayer.Chatted:Connect(function(Message)
 
 		local path, branch
 
-		if Value or Value ~= "" then
+		if Value and Value ~= "" then
 			local split0 = string.split(Value, "#")
 
 			path = split0[1]
@@ -362,7 +362,7 @@ LocalPlayer.Chatted:Connect(function(Message)
 		
 		local path, branch
 
-		if Value or Value ~= "" then
+		if Value and Value ~= "" then
 			local split0 = string.split(Value, "#")
 
 			path = split0[1]
