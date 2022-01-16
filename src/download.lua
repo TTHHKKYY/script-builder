@@ -240,7 +240,7 @@ local function RunPkg(name, branch)
 	end
 
 	local function RecurseDependencies(Child, Branch, Repo)
-		print("Downloading package " .. Child.Name)
+		print("Loading package " .. Child.Name)
 
 		Branch = Branch or GetDefaultBranch(Repo)
 		local Contents = GetContents(Child.Parent, Branch, Repo)
@@ -296,8 +296,8 @@ LocalPlayer.Chatted:Connect(function(Message)
 	if Command == "/githelp" then
 		print("/repo USER/NAME")
 		print("   sets the current repository")
-		print("/cc USER/NAME[#BRANCH]")
-		print("   clear cache of repository [and branch] (expensive!)")
+		print("/cc [USER/NAME[#BRANCH]]")
+		print("   clear cache of current repository [or branch] (expensive!)")
 		print("/index [PATH[#BRANCH]]")
 		print("   list all files under PATH or root")
 		print("/findpkg [PATH[#BRANCH]]")
@@ -306,6 +306,8 @@ LocalPlayer.Chatted:Connect(function(Message)
 		print("   loads and runs a package server-side")
 		print("/loadcl PKG")
 		print("   loads and runs a package client-side")
+		print("/rates")
+		print("   gets current ratelimit")
 		print("/getmain")
 		print("   fetches the default branch")
 		
@@ -321,7 +323,8 @@ LocalPlayer.Chatted:Connect(function(Message)
 
 		local Repository = Http:GetAsync(string.format("https://api.github.com/repos/%s",Value))
 
-		if Repository.message == "Not Found" then
+		local RepositoryData = Http:JSONDecode(Repository)
+		if RepositoryData.message == "Not Found" then
 			error("Repository not found.")
 		end
 
@@ -333,21 +336,27 @@ LocalPlayer.Chatted:Connect(function(Message)
 	if Command == "/cc" then
 		IsValid()
 
-		local repo, branch
-		local split0 = string.split(Value, "#")
+		if Value and Value ~= "" then
+			local repo, branch
+			local split0 = string.split(Value, "#")
 
-		repo = split0[1]
-		if #split0 > 1 then
-			branch = split0[2]
-		end
+			repo = split0[1]
+			if #split0 > 1 then
+				branch = split0[2]
+			end
 
-		if not branch then
-			Settings.RepoIndex[repo] = nil
-			Settings.FetchIndex[repo] = nil
-			print(("Cleared cache for repo %s"):format(repo))
+			if not branch then
+				Settings.RepoIndex[repo] = nil
+				Settings.FetchIndex[repo] = nil
+				print(("Cleared cache for repo %s"):format(repo))
+			else
+				Settings.RepoIndex[repo][branch] = nil
+				Settings.FetchIndex[repo][branch] = nil
+				print(("Cleared cache for repo %s, branch %s"):format(repo, branch))
+			end
 		else
-			Settings.RepoIndex[repo][branch] = nil
-			print(("Cleared cache for repo %s, branch %s"):format(repo, branch))
+			Settings.RepoIndex[Settings.GithubRepo] = nil
+			Settings.FetchIndex[Settings.GithubRepo] = nil
 		end
 	end
 
@@ -398,6 +407,18 @@ LocalPlayer.Chatted:Connect(function(Message)
 		IsValid()
 		assert(Value,"Package argument is missing.")
 		RunPkg(Value)
+	end
+
+	if Command == "/rate" then
+		local Data = Http:GetAsync("https://api.github.com/rate_limit")
+		local Decode = Http:JSONDecode(Data)
+
+		if Decode then
+			print("Core limit: " .. Decode.resources.core.limit)
+			print("Core remaining: " .. Decode.resources.core.remaining)
+			print("Core used: " .. Decode.resources.core.used)
+			print("Core reset: " .. Decode.resources.core.reset - os.time() .. " s")
+		end
 	end
 	
 	if Command == "/getmain" then
