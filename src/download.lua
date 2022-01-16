@@ -329,10 +329,10 @@ LocalPlayer.Chatted:Connect(function(Message)
 		if not branch then
 			Settings.RepoIndex[repo] = nil
 			Settings.FetchIndex[repo] = nil
-			print("Cleared cache for repo %s":format(repo))
+			print(("Cleared cache for repo %s"):format(repo))
 		else
 			Settings.RepoIndex[repo][branch] = nil
-			print("Cleared cache for repo %s, branch %s":format(repo, branch))
+			print(("Cleared cache for repo %s, branch %s"):format(repo, branch))
 		end
 	end
 
