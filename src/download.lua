@@ -238,11 +238,6 @@ local function RunPkg(name, branch)
 	RecurseDependencies(Pkg, Settings.GithubRepo, true)
 
 	local Runnable = PrependLibs({Source = MainData, Path = Main.FullPath, PackageName = name}, libs)
-	local split = Runnable:split("\n")
-
-	for i = 1, #split do
-		print(i .. "   " .. split[i])
-	end
 
 	NS(Runnable, workspace)
 end
