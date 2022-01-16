@@ -248,6 +248,10 @@ local function RunPkg(name, branch)
 
 		if Child.Data.dependencies then
 			for drepo, dpkgs in pairs(Child.Data.dependencies) do
+				if type(dpkgs) ~= "table" then 
+					dpkgs = {dpkgs}
+				end
+
 				local searchRepo, searchBranch
 				local split = string.split(drepo, "#")
 		
