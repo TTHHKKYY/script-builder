@@ -15,7 +15,7 @@ local require = function(module)
 
     local foundScript = __scripts[module]
 
-    if not foundScript and #module > #PKG_NAME then
+    if not foundScript then
         foundScript = __scripts[PKG_NAME .. "/" .. module]
     end
 
