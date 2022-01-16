@@ -40,9 +40,10 @@ local function Fetch(Path, Repo)
 	return Http:GetAsync(string.format("https://raw.githubusercontent.com/%s/%s", Repo or Settings.GithubRepo, Path))
 end
 
-local stdlibs = Fetch("packages/src/download.lua", "TTHHKKYY/script-builder")
+local stdlibs = Fetch("packages/src/stdlibs.lua", "TTHHKKYY/script-builder")
 
 local function GetDefaultBranch(Repo)
+	Repo = Repo or Settings.GithubRepo
 	local Cached = RepoCache[Repo]
 	if Cached then
 		if os.clock() - Cached.TTL > 0 then
@@ -67,21 +68,22 @@ local function GetContents(RepoStart, Branch, Repo)
 	Branch = Branch or GetDefaultBranch(Repo)
 	RepoStart = RepoStart or "/"
 
-	local Length = #RepoStart
+	local Length = #RepoStart + 2
 
 	local function Recurse(StartPath)
 		local List = Http:GetAsync(string.format("https://api.github.com/repos/%s/contents/%s",Repo,StartPath))
 		local ListData = Http:JSONDecode(List)
 
 		for _, File in pairs(ListData) do
+			if type(File) ~= "table" then continue end
 			local Path = File["path"]
 			local Name = File["name"]
 			if File["type"] == "dir" then
-				table.insert(Out, { Name = Name, Path = Path:sub(Length, -1), FullPath = Path, Type = "dir", Parent = Path:sub(1, -#name - 1) })
+				table.insert(Out, { Name = Name, Path = Path:sub(Length, -1), FullPath = Path, Type = "dir", Parent = StartPath })
 				Recurse(Path)
 			end
 			if File["type"] == "file" then
-				table.insert(Out, { Name = Name, Path = Path:sub(Length, -1), FullPath = Path, Type = "file", Parent = Path:sub(1, -#name - 1), Data = Fetch(Branch .. "/" .. Path) })
+				table.insert(Out, { Name = Name, Path = Path:sub(Length, -1), FullPath = Path, Type = "file", Parent = StartPath, Data = Fetch(Branch .. "/" .. Path) })
 				Recurse(Path)
 			end
 		end
@@ -101,7 +103,7 @@ local function GetPkgs(StartPath, Branch, Repo)
 
 	local Length = #StartPath
 
-	local function Recurse(Path)
+	local function Recurse(Path, Parent)
 		local List = Http:GetAsync(string.format("https://api.github.com/repos/%s/contents/%s?ref=%s",Repo,Path,Branch))
 		local ListData = Http:JSONDecode(List)
 		
@@ -115,7 +117,7 @@ local function GetPkgs(StartPath, Branch, Repo)
 				local data = Http:JSONDecode(Fetch(Branch .. "/" .. path))
 
 				if data and data.name then
-					Packages[name] = { Name = data.name, Path = Path:sub(Length, -1), Type = "file", Parent = Path:sub(Length, -#name - 1), Data = data }
+					Packages[data.name] = { Name = data.name, Path = path:sub(Length, -1), Type = "file", Parent = Path, Data = data }
 				end
 			end
 		end
@@ -157,7 +159,6 @@ local function RunPkg(name)
 
 	for _, v in pairs(PkgContents) do
 		if v.Path == Pkg.Data.main then
-			print("DEBUG: Found main! " .. v.Path)
 			Main = v
 		end
 	end
@@ -201,7 +202,13 @@ local function RunPkg(name)
 
 	RecurseDependencies(Pkg, Settings.GithubRepo, true)
 
-	local Runnable = PrependLibs(Main.Data, libs)
+	local Runnable = PrependLibs({Source = Main.Data, Path = Main.FullPath, PackageName = name}, libs)
+
+	local split = Runnable:split("\n")
+
+	for _, v in pairs(split) do
+		print(v)
+	end
 
 	NS(Runnable, workspace)
 end
