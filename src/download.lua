@@ -37,7 +37,7 @@ end
 ---- package management
 
 local function Fetch(Path, Repo)
-	return Http:GetAsync(string.format("https://raw.githubusercontent.com/%s/%s"), Repo or Settings.GithubRepo, Path)
+	return Http:GetAsync(string.format("https://raw.githubusercontent.com/%s/%s", Repo or Settings.GithubRepo, Path))
 end
 
 local stdlibs = Fetch("packages/src/download.lua", "TTHHKKYY/script-builder")
@@ -52,7 +52,7 @@ local function GetDefaultBranch(Repo)
 		end
 	end
 
-	local Repository = Http:GetAsync(string.format("https://api.github.com/repos/%s",Repo or Settings.GithubRepo))
+	local Repository = Http:GetAsync(string.format("https://api.github.com/repos/%s", Repo or Settings.GithubRepo))
 	local RepositoryData = Http:JSONDecode(Repository)
 
 	RepoCache[Repo] = Cached or {TTL = os.clock() + 60}
