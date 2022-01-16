@@ -39,6 +39,8 @@ end
 ---- package management
 
 local function Fetch(Path, Repo, NoCache)
+	Repo = Repo or Settings.GithubRepo
+
 	if (not NoCache) and Settings.FetchIndex[Repo] and Settings.FetchIndex[Repo][Path] then
 		local cache = Settings.FetchIndex[Repo][Path]
 
@@ -48,7 +50,7 @@ local function Fetch(Path, Repo, NoCache)
 			return cache.Data
 		end
 	end
-	local out = Http:GetAsync(string.format("https://raw.githubusercontent.com/%s/%s", Repo or Settings.GithubRepo, Path))
+	local out = Http:GetAsync(string.format("https://raw.githubusercontent.com/%s/%s", Repo, Path))
 
 	Settings.FetchIndex[Repo] = Settings.FetchIndex[Repo] or {}
 	Settings.FetchIndex[Repo][Path] = { TTD = os.clock() + 120, Data = out }
