@@ -408,7 +408,8 @@ LocalPlayer.Chatted:Connect(function(Message)
 	
 	if Command == "/reload" then
 		if Value == "stdlibs" then
-
+			stdlibs = Fetch("packages/src/stdlibs.lua", "TTHHKKYY/script-builder")
+			print("Reloaded stdlibs.lua")
 			return
 		end
 		error("Invalid argument!")

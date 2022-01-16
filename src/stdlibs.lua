@@ -55,7 +55,7 @@ local require = (function()
             start = start .. "local PATH = \"" .. foundScript.Path .. "\"\n"
 
             local Data = Fetch(foundScript.Branch .. "/" .. foundScript.Path, foundScript.Repo)
-            return loadstring(start .. foundScript.Source)()
+            return loadstring(start .. Data)()
         end
 
         warn("Script " .. module .. " not found!")
