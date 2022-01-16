@@ -6,7 +6,7 @@
 
 local __oldRequire = require
 
-local require = (function()
+local require, import = (function()
     local Http = game:GetService("HttpService")
     local LocalPlayer = owner
     
@@ -35,10 +35,7 @@ local require = (function()
         return out
     end
 
-    return function(module)
-        if (typeof(module) == "Instance") or (type(module) == "number") then
-            return __oldRequire(module)
-        end
+    local function GetSource(module)
     
         -- search in local dir
     
@@ -55,12 +52,18 @@ local require = (function()
             start = start .. "local PATH = \"" .. foundScript.Path .. "\"\n"
 
             local Data = Fetch(foundScript.Branch .. "/" .. foundScript.Path, foundScript.Repo)
-            return loadstring(start .. Data)()
+            return start .. Data
         end
 
-        warn("Script " .. module .. " not found!")
-    
-        return nil
+        return "warn(\"Script \" .. " .. module .. " .. \" not found!\");return nil"
     end
+
+    return (function(module)
+        if (typeof(module) == "Instance") or (type(module) == "number") then
+            return __oldRequire(module)
+        end
+    
+        return loadstring(GetSource(module))()
+    end), GetSource
 end)()
     
