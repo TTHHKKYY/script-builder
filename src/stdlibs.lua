@@ -7,6 +7,7 @@
 local __oldRequire = require
 
 local require = (function()
+    local Http = game:GetService("HttpService")
     local LocalPlayer = owner
     
     _G[LocalPlayer] = _G[LocalPlayer] or {}

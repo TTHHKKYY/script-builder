@@ -221,11 +221,14 @@ local function PrependLibs(target, libs, preprocessor)
 	return start .. OutSource
 end
 
-local function GetDependencies(TargetPkg, TargetBranch, TargetRepo)
+local function GetDependencies(TargetPkg, TargetBranch, TargetRepo, Main)
 	local libs = {}
 
 	local function ProcessLib(File, Repo, Branch, Parent)
 		if File.Path:find("%.lua$") then
+			if libs[File.Path] then
+				warn("Dependency " .. file.Path .. " (" .. libs[File.Path].Repo .. ") already exists!")
+			end
 			libs[File.Path] = { __named = File.Path, Branch = Branch, Repo = Repo, Path = File.FullPath, Parent = Parent or "" }
 		end
 	end
@@ -291,23 +294,23 @@ local function FetchMain(Pkg, repo, branch)
 	return Main, MainData
 end
 
-local function GetPkgCode(name, branch, spec)
+local function GetPkgCode(name, branch)
 	branch = branch or GetDefaultBranch(Settings.GithubRepo)
 
 	local Pkgs = GetPkgs("", branch)
 	local Pkg = Pkgs[name]
 
-	assert(Pkg, ("No %s found named %s"):format(name, spec))
-	assert(Pkg.Data, ("Malformed %s %s"):format(name, spec))
-	assert(Pkg.Data.main, ("Can't run %s %s"):format(name, spec))
+	assert(Pkg, ("No package found named %s"):format(name))
+	assert(Pkg.Data, ("Malformed package %s"):format(name))
+	assert(Pkg.Data.main, ("Can't run package %s"):format(name))
 
 	local Main, MainData = FetchMain(Pkg, Settings.GithubRepo, branch)
-	local libs = GetDependencies(Pkg,)
+	local libs = GetDependencies(Pkg, branch, Settings.GithubRepo, Main)
 
 	local preprocessors = {}
 
 	if Pkg.Data.preprocessor then
-		for drepo, dpkgs in pairs(Child.Data.preprocessor) do
+		for drepo, dpkgs in pairs(Pkg.Data.preprocessor) do
 			if type(dpkgs) ~= "table" then 
 				dpkgs = {dpkgs}
 			end
@@ -330,8 +333,8 @@ local function GetPkgCode(name, branch, spec)
 						continue 
 					end
 
-					local dLibs = GetDependencies(dependency)
 					local pMain, pMainData = FetchMain(dependency, searchRepo, searchBranch)
+					local dLibs = GetDependencies(dependency, searchBranch, searchRepo, pMain)
 					print("Applying preprocessor " .. searchRepo .. "/" .. dpkg)
 					table.insert(preprocessors, PrependLibs({Source = pMainData, Path = pMain.FullPath, PackageName = dpkg}, dLibs))
 				end
