@@ -181,60 +181,52 @@ local function GetPkgs(StartPath, Branch, Repo)
 	return Packages
 end
 
-local function PrependLibs(target, libs)
+local function PrependLibs(target, libs, preprocessor)
 	local start = "local PKG_ROOT = \"" .. Settings.GithubRepo .. "\"\n"
-	start = start .. "local PKG_NAME = \"" .. target.PackageName .. "\""
-	start = start .. "local PATH = \"" .. target.Path .. "\"\n"
+	start = start .. "local PKG_NAME = \"" .. target.PackageName .. "\"\n"
+	start = start .. "local PATH = \"" .. target.Path .. "\"\n\n"
 
 	-- require resolve
 	start = start .. "local __scripts = {\n"
 
 	for k, v in pairs(libs) do
-		start = start .. ("\t[\"%s\"] = { Source = [=[%s]=], Path = \"%s\", Repo = \"%s\", Parent = \"%s\" },\n"):format(k, v.Source, v.Path, v.Repo, v.Parent)
+		start = start .. ("   [\"%s\"] = { Path = \"%s\", Branch = \"%s\", Repo = \"%s\", Parent = \"%s\" },\n"):format(k, v.Path, v.Branch, v.Repo, v.Parent)
 	end
 
 	start = start .. "}\n\n"
-
 	start = start .. stdlibs
-	return start .. target.Source
+
+	local OutSource = target.Source
+	if preprocessor and (#preprocessor > 0) then
+		start = start .. "---- preprocessor start"
+		for _, v in pairs(preprocessor) do
+			local success, err = pcall(function()
+				local processor = loadstring(v)()
+
+				if processor.AppendLibs then
+					start = processor.AppendLibs(target, libs, start)
+				end
+
+				if processor.ReplaceSource then
+					OutSource = processor.ReplaceSource(target, libs, OutSource)
+				end
+			end)
+
+			if not success then
+				warn("Preprocessor failure! Error: " .. err)
+			end
+		end
+		start = start .. "---- end of preprocessor"
+	end
+	return start .. OutSource
 end
 
-local function GetPkgCode(name, branch)
-	branch = branch or GetDefaultBranch(Settings.GithubRepo)
-
-	local Pkgs = GetPkgs()
-	local Pkg = Pkgs[name]
-
-	assert(Pkg, "No package found named " .. name)
-	assert(Pkg.Data, "Malformed package " .. name)
-	assert(Pkg.Data.main, "Can't run package " .. name)
-
-	local PkgContents = GetContents(Pkg.Parent, branch, Settings.GithubRepo)
-	local Main
-
-	for _, v in pairs(PkgContents) do
-		if v.Path == Pkg.Data.main then
-			Main = v
-		end
-	end
-
-	assert(Main, Pkg.Data.main .. " not found!")
-
-	local MainData = Fetch(branch .. "/" .. Main.FullPath)
-
+local function GetDependencies(TargetPkg, TargetBranch, TargetRepo)
 	local libs = {}
 
 	local function ProcessLib(File, Repo, Branch, Parent)
 		if File.Path:find("%.lua$") then
-			local original = Parent
-			if Parent then
-				Parent = Parent .. "/"
-			else
-				Parent = ""
-			end
-
-			local data = Fetch(Branch .. "/" .. File.FullPath, Repo)
-			libs[Parent .. File.Path] = { Source = data, __named = File.Path, Repo = Repo, Path = File.FullPath, Parent = original or "" }
+			libs[File.Path] = { __named = File.Path, Branch = Branch, Repo = Repo, Path = File.FullPath, Parent = Parent or "" }
 		end
 	end
 
@@ -276,9 +268,78 @@ local function GetPkgCode(name, branch)
 		end
 	end
 
-	RecurseDependencies(Pkg, nil, Settings.GithubRepo)
+	RecurseDependencies(TargetPkg, TargetBranch, TargetRepo)
+	return libs
+end
 
-	return PrependLibs({Source = MainData, Path = Main.FullPath, PackageName = name}, libs)
+local function FetchMain(Pkg, repo, branch)
+	branch = branch or GetDefaultBranch(Settings.GithubRepo)
+
+	local PkgContents = GetContents(Pkg.Parent, branch, repo)
+	local Main
+
+	for _, v in pairs(PkgContents) do
+		if v.Path == Pkg.Data.main then
+			Main = v
+		end
+	end
+
+	assert(Main, Pkg.Data.main .. " not found!")
+
+	local MainData = Fetch(branch .. "/" .. Main.FullPath)
+
+	return Main, MainData
+end
+
+local function GetPkgCode(name, branch, spec)
+	branch = branch or GetDefaultBranch(Settings.GithubRepo)
+
+	local Pkgs = GetPkgs("", branch)
+	local Pkg = Pkgs[name]
+
+	assert(Pkg, ("No %s found named %s"):format(name, spec))
+	assert(Pkg.Data, ("Malformed %s %s"):format(name, spec))
+	assert(Pkg.Data.main, ("Can't run %s %s"):format(name, spec))
+
+	local Main, MainData = FetchMain(Pkg, Settings.GithubRepo, branch)
+	local libs = GetDependencies(Pkg,)
+
+	local preprocessors = {}
+
+	if Pkg.Data.preprocessor then
+		for drepo, dpkgs in pairs(Child.Data.preprocessor) do
+			if type(dpkgs) ~= "table" then 
+				dpkgs = {dpkgs}
+			end
+
+			local searchRepo, searchBranch
+			local split = string.split(drepo, "#")
+
+			searchRepo = split[1]
+			if #split > 1 then
+				searchBranch = split[2]
+			end
+
+			local pPkgs = GetPkgs("", searchBranch, searchRepo)
+
+			for _, dpkg in pairs(dpkgs) do
+				local dependency = pPkgs[dpkg]
+				if dependency then
+					if not dependency.Data or not dependency.Data.main then
+						warn(("Preprocessor %s is not runnable!"):format(dpkg))
+						continue 
+					end
+
+					local dLibs = GetDependencies(dependency)
+					local pMain, pMainData = FetchMain(dependency, searchRepo, searchBranch)
+					print("Applying preprocessor " .. searchRepo .. "/" .. dpkg)
+					table.insert(preprocessors, PrependLibs({Source = pMainData, Path = pMain.FullPath, PackageName = dpkg}, dLibs))
+				end
+			end
+		end
+	end
+
+	return PrependLibs({Source = MainData, Path = Main.FullPath, PackageName = name}, libs, preprocessors)
 end
 
 local function RunPkg(name, branch)
@@ -301,6 +362,8 @@ LocalPlayer.Chatted:Connect(function(Message)
 	if Command == "/githelp" then
 		print("/repo USER/NAME")
 		print("   sets the current repository")
+		print("/reload OBJ")
+		print("   fetch an specified object again. Possible values: stdlibs")
 		print("/[f]cc [USER/NAME[#BRANCH]]")
 		print("   clear [both] cache(s) of current repository [or branch] (expensive!)")
 		print("/index [PATH[#BRANCH]]")
@@ -340,6 +403,14 @@ LocalPlayer.Chatted:Connect(function(Message)
 		Settings.GithubRepo = Value
 	end
 	
+	if Command == "/reload" then
+		if Value == "stdlibs" then
+
+			return
+		end
+		error("Invalid argument!")
+	end
+
 	if Command == "/cc" then
 		IsValid()
 
