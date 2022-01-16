@@ -10,8 +10,6 @@ local require, import = (function()
     local Http = game:GetService("HttpService")
     local LocalPlayer = owner
 
-    print(LocalPlayer)
-
     _G[LocalPlayer] = _G[LocalPlayer] or {}
     _G[LocalPlayer].FetchIndex = _G[LocalPlayer].FetchIndex or {}
     
@@ -30,7 +28,6 @@ local require, import = (function()
             end
         end
         local out = Http:GetAsync(string.format("https://raw.githubusercontent.com/%s/%s", Repo, Path))
-        print("FETCH  ", Repo, Path)
     
         Settings.FetchIndex[Repo] = Settings.FetchIndex[Repo] or {}
         Settings.FetchIndex[Repo][Path] = { TTD = os.clock() + 120, Data = out }

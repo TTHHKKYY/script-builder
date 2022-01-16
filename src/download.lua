@@ -51,7 +51,6 @@ local function Fetch(Path, Repo, NoCache)
 		end
 	end
 	local out = Http:GetAsync(string.format("https://raw.githubusercontent.com/%s/%s", Repo, Path))
-	print("FETCH  ", Repo, Path)
 
 	Settings.FetchIndex[Repo] = Settings.FetchIndex[Repo] or {}
 	Settings.FetchIndex[Repo][Path] = { TTD = os.clock() + 120, Data = out }
@@ -73,7 +72,6 @@ local function GetDefaultBranch(Repo)
 	end
 
 	local Repository = Http:GetAsync(string.format("https://api.github.com/repos/%s", Repo))
-	print("BRANCH  ", Repo)
 	local RepositoryData = Http:JSONDecode(Repository)
 
 	RepoCache[Repo] = Cached or {TTD = os.clock() + 120}
@@ -108,7 +106,6 @@ local function GetContents(RepoStart, Branch, Repo)
 	
 		local function Recurse(StartPath)
 			local List = Http:GetAsync(string.format("https://api.github.com/repos/%s/contents/%s",Repo,StartPath))
-			print("CRAWL  ", Repo, StartPath)
 			local ListData = Http:JSONDecode(List)
 
 			for _, File in pairs(ListData) do
@@ -188,7 +185,7 @@ local function PrependLibs(target, libs, preprocessor)
 	local start = "local PKG_ROOT = \"" .. Settings.GithubRepo .. "\"\n"
 	start = start .. "local PKG_NAME = \"" .. target.PackageName .. "\"\n"
 	start = start .. "local PATH = \"" .. target.Path .. "\"\n"
-	start = start .. "local owner = \"" .. LocalPlayer:GetFullPath() .. "\"\n\n"
+	start = start .. "local owner = game." .. LocalPlayer:GetFullName() .. "\n\n"
 
 	-- require resolve
 	start = start .. "local __scripts = {\n"
