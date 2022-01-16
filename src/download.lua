@@ -206,8 +206,8 @@ local function RunPkg(name)
 
 	local split = Runnable:split("\n")
 
-	for _, v in pairs(split) do
-		print(v)
+	for i = 1, #split do
+		print(i .. "   " .. split[i])
 	end
 
 	NS(Runnable, workspace)

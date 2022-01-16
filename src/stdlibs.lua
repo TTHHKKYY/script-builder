@@ -16,9 +16,9 @@ local require = function(module)
 
     if foundScript then
         local start = "local PKG_ROOT = \"" .. foundScript.Repo "\"\n"
-        start = start .. "local PKG_NAME = \"" .. foundTarget.Parent .. "\""
+        start = start .. "local PKG_NAME = \"" .. foundTarget.Parent .. "\"\n"
         start = start .. "local PATH = \"" .. foundScript.Path .. "\"\n"
-        start = start .. ("local __stdlibs = [===[%s]===]"):format(stdlibs)
+        start = start .. ("local __stdlibs = [=%s=[%s]=%s=]"):format("=", stdlibs, "=")
 
         -- require resolve
         start = start .. "local __scripts = {\n"
