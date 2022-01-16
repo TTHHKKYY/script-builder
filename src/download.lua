@@ -84,7 +84,7 @@ local function GetContents(RepoStart, Branch, Repo)
 
 	Repo = Repo or Settings.GithubRepo
 	Branch = Branch or GetDefaultBranch(Repo)
-	RepoStart = RepoStart or "/"
+	RepoStart = RepoStart or ""
 
 	local FileSystem
 
@@ -131,22 +131,27 @@ local function GetContents(RepoStart, Branch, Repo)
 		Settings.RepoIndex[Repo][Branch] = FileSystem
 	end
 
-
-	if RepoStart:sub(-1, -1) ~= "/" then
-		RepoStart = RepoStart .. "/" -- trailing slash ALWAYS
+	if RepoStart == "/" then
+		RepoStart = ""
 	end
 	
 	local Out = {}
 
 	for _, v in pairs(FileSystem.Files) do
-		if #v.FullPath <= #RepoStart then continue end
+		if #v.FullPath < #RepoStart then
+			continue 
+		end
+		local fail = false
 		for i = 1, #RepoStart do
 			if v.FullPath:sub(i, i) ~= RepoStart:sub(i, i) then
-				continue
+				fail = true
+				break
 			end
 		end
 
-		table.insert(Out, { Name = v.Name, FullPath = v.FullPath, Path = v.FullPath:sub(#RepoStart + 1), Type = v.Type, Parent = v.Parent })
+		if fail then continue end
+
+		table.insert(Out, { Name = v.Name, FullPath = v.FullPath, Path = v.FullPath:sub(#RepoStart + 2), Type = v.Type, Parent = v.Parent })
 	end
 
 	return Out
@@ -156,7 +161,7 @@ local function GetPkgs(StartPath, Branch, Repo)
 
 	Repo = Repo or Settings.GithubRepo
 	Branch = Branch or GetDefaultBranch(Repo)
-	RepoStart = RepoStart or "/"
+	StartPath = StartPath or ""
 
 	local Packages = {}
 	local Contents = GetContents(StartPath, Branch, Repo)
@@ -260,7 +265,7 @@ local function RunPkg(name, branch)
 					searchBranch = split[2]
 				end
 
-				local dependencyPackages = GetPkgs("/", searchBranch, searchRepo)
+				local dependencyPackages = GetPkgs("", searchBranch, searchRepo)
 				
 				for _, dpkg in pairs(dpkgs) do
 					local dependency = dependencyPackages[dpkg]
@@ -275,12 +280,6 @@ local function RunPkg(name, branch)
 	RecurseDependencies(Pkg, nil, Settings.GithubRepo)
 
 	local Runnable = PrependLibs({Source = MainData, Path = Main.FullPath, PackageName = name}, libs)
-
-	local split = Runnable:split("\n")
-
-	for i = 1, #split do
-		print(i, "   ", split[i])
-	end
 
 	NS(Runnable, workspace)
 end
