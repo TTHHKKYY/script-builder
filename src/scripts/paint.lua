@@ -12,6 +12,7 @@ Remote.Name = "UploadPainting"
 Remote.Parent = LocalPlayer
 
 print("Hold E while dragging your cursor over the canvas to draw.")
+print("Press Q to toggle the painting interface.")
 print("Click Submit to draw whats on the canvas.")
 
 Remote.OnServerEvent:Connect(function(Player,Data,Scale)
@@ -72,14 +73,14 @@ List.Parent = Palette
 Container.BackgroundColor3 = Color3.new(1,1,1)
 Container.BorderColor3 = Color3.new()
 Container.Size = UDim2.new(0,512,0,512)
-Container.Position = UDim2.new(0.5,256,0.3,-256)
+Container.Position = UDim2.new(0.5,-256,0.5,-256)
 Container.Parent = Interface
 
 Palette.ClipsDescendants = true
 Palette.BackgroundColor3 = Color3.new(1,1,1)
 Palette.BorderColor3 = Color3.new()
 Palette.Size = UDim2.new(0,128,0,512 - 68)
-Palette.Position = UDim2.new(0.5,256 - 132,0.3,-256)
+Palette.Position = UDim2.new(0.5,-256 - 132,0.5,-256)
 Palette.CanvasSize = UDim2.new()
 Palette.ScrollBarThickness = 0
 Palette.AutomaticCanvasSize = Enum.AutomaticSize.Y
@@ -89,7 +90,7 @@ Palette.Parent = Interface
 Submit.BackgroundColor3 = Color3.new(1,1,1)
 Submit.BorderColor3 = Color3.new()
 Submit.Size = UDim2.new(0,128,0,64)
-Submit.Position = UDim2.new(0.5,256 - 132,0.3,256 - 64)
+Submit.Position = UDim2.new(0.5,-256 - 132,0.5,256 - 64)
 
 Submit.Font = Enum.Font.Arial
 Submit.TextSize = 40
@@ -174,5 +175,13 @@ ContextAction:BindAction("PaintingBrushDown",function(_,State)
 	if State == Enum.UserInputState.End then
 		BrushDown = false
 	end
+	return Enum.ContextActionResult.Pass
 end,false,Enum.KeyCode.E)
+
+ContextAction:BindAction("PaintingToggleInterface",function(_,State)
+	if State == Enum.UserInputState.Begin then
+		Interface.Enabled = not Interface.Enabled
+	end
+	return Enum.ContextActionResult.Pass
+end,false,Enum.KeyCode.Q)
 ]],LocalPlayer.Backpack)
