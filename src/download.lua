@@ -61,6 +61,7 @@ end
 
 local function GetContents(RepoStart, Branch, Repo)
 
+	Repo = Repo or Settings.GithubRepo
 	Branch = Branch or GetDefaultBranch(Repo)
 	RepoStart = RepoStart or "/"
 
@@ -82,7 +83,7 @@ local function GetContents(RepoStart, Branch, Repo)
 			Files = {}
 		}
 	
-		local function Recurse(StartPath, Parent)
+		local function Recurse(StartPath)
 			local List = Http:GetAsync(string.format("https://api.github.com/repos/%s/contents/%s",Repo,StartPath))
 			local ListData = Http:JSONDecode(List)
 
@@ -109,39 +110,44 @@ local function GetContents(RepoStart, Branch, Repo)
 		Settings.RepoIndex[Repo][Branch] = FileSystem
 	end
 
-	if not RepoStart:find("/$") then
+
+	if RepoStart:sub(-1, -1) ~= "/" then
 		RepoStart = RepoStart .. "/" -- trailing slash ALWAYS
 	end
 	
 	local Out = {}
 
 	for _, v in pairs(FileSystem.Files) do
-		if #v.FullPath < #RepoStart then continue end
+		if #v.FullPath <= #RepoStart then continue end
 		for i = 1, #RepoStart do
 			if v.FullPath:sub(i, i) ~= RepoStart:sub(i, i) then
 				continue
 			end
 		end
 
-		table.insert(Out, { Name = v.Name, FullPath = v.FullPath, Path = v.FullPath:sub(#RepoStart), Type = v.Type, Parent = v.Parent })
+		table.insert(Out, { Name = v.Name, FullPath = v.FullPath, Path = v.FullPath:sub(#RepoStart + 1), Type = v.Type, Parent = v.Parent })
 	end
 
-	return FileSystem.Files
+	return Out
 end
 
 local function GetPkgs(StartPath, Branch, Repo)
-	local Packages = {}
 
+	Repo = Repo or Settings.GithubRepo
+	Branch = Branch or GetDefaultBranch(Repo)
+	RepoStart = RepoStart or "/"
+
+	local Packages = {}
 	local Contents = GetContents(StartPath, Branch, Repo)
 
-	for _, v in pairs(Contents) do
-		if v.Name == "download.json" and v.Type == "file" then
+	for _, File in pairs(Contents) do
+		if File.Name == "download.json" and File.Type == "file" then
 			local path = File.FullPath
 			local name = "download.json"
 			local data = Http:JSONDecode(Fetch(Branch .. "/" .. path))
 
 			if data and data.name then
-				table.insert(Packages, { Name = data.name, FullPath = v.FullPath, Path = v.Path, Parent = v.Parent, Data = data })
+				Packages[data.name] = { Name = data.name, FullPath = File.FullPath, Path = File.Path, Parent = File.Parent, Data = data }
 			end
 		end
 	end
@@ -159,7 +165,7 @@ local function PrependLibs(target, libs)
 	start = start .. "local __scripts = {\n"
 
 	for k, v in pairs(libs) do
-		start = start .. ("\t[\"%s\"] = { Source = [===[%s]===], Path = \"%s\", Parent = \"%s\" },\n"):format(k, v.Source, v.Path, v.Parent)
+		start = start .. ("\t[\"%s\"] = { Source = [=[%s]=], Path = \"%s\", Parent = \"%s\" },\n"):format(k, v.Source, v.Path, v.Parent)
 	end
 
 	start = start .. "}\n\n"
@@ -193,7 +199,7 @@ local function RunPkg(name, branch)
 
 	local libs = {}
 
-	local function ProcessLib(File, Parent)
+	local function ProcessLib(File, Repo, Branch, Parent)
 		if File.Path:find("%.lua$") then
 			local original = Parent
 			if Parent then
@@ -202,16 +208,19 @@ local function RunPkg(name, branch)
 				Parent = ""
 			end
 
-			libs[Parent .. File.Path] = { Source = File.Data, __named = File.Path, Path = File.FullPath, Parent = original or "" }
+			local data = Fetch(Branch .. "/" .. File.FullPath, Repo)
+			libs[Parent .. File.Path] = { Source = data, __named = File.Path, Path = File.FullPath, Parent = original or "" }
 		end
 	end
 
 	local function RecurseDependencies(Child, Repo, Root)
 		print("Downloading package " .. Child.Name)
-		local Contents = GetContents(Child.Parent, nil, Repo)
+
+		local Branch = GetDefaultBranch(Repo)
+		local Contents = GetContents(Child.Parent, Branch, Repo)
 
 		for _, File in pairs(Contents) do
-			ProcessLib(File, if Root then nil else Child.Name)
+			ProcessLib(File, Repo, Branch, if Root then nil else Child.Name)
 		end
 
 		if Child.dependencies then
@@ -228,7 +237,7 @@ local function RunPkg(name, branch)
 
 	RecurseDependencies(Pkg, Settings.GithubRepo, true)
 
-	local Runnable = PrependLibs({Source = Main.Data, Path = Main.FullPath, PackageName = name}, libs)
+	local Runnable = PrependLibs({Source = MainData, Path = Main.FullPath, PackageName = name}, libs)
 	local split = Runnable:split("\n")
 
 	for i = 1, #split do

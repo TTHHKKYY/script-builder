@@ -31,7 +31,7 @@ local require = function(module)
             if v.Parent == foundTarget.Parent then
                 name = v.__named
             end
-            start = start .. ("\t[\"%s\"] = { Source = [===[%s]===], __named = \"%s\", Path = \"%s\", Parent = \"%s\" },\n"):format(name, v.Source, v.__named, v.Path, v.Parent)
+            start = start .. ("\t[\"%s\"] = { Source = [=[%s]=], __named = \"%s\", Path = \"%s\", Parent = \"%s\" },\n"):format(name, v.Source, v.__named, v.Path, v.Parent)
         end
 
         start = start .. "}\n\n"
