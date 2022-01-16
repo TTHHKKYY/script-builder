@@ -186,7 +186,7 @@ local function PrependLibs(target, libs)
 	start = start .. "local __scripts = {\n"
 
 	for k, v in pairs(libs) do
-		start = start .. ("\t[\"%s\"] = { Source = [=[%s]=], Path = \"%s\", Parent = \"%s\" },\n"):format(k, v.Source, v.Path, v.Parent)
+		start = start .. ("\t[\"%s\"] = { Source = [=[%s]=], Path = \"%s\", Repo = \"%s\", Parent = \"%s\" },\n"):format(k, v.Source, v.Path, v.Repo, v.Parent)
 	end
 
 	start = start .. "}\n\n"
@@ -230,43 +230,53 @@ local function RunPkg(name, branch)
 			end
 
 			local data = Fetch(Branch .. "/" .. File.FullPath, Repo)
-			libs[Parent .. File.Path] = { Source = data, __named = File.Path, Path = File.FullPath, Parent = original or "" }
+			libs[Parent .. File.Path] = { Source = data, __named = File.Path, Repo = Repo, Path = File.FullPath, Parent = original or "" }
 		end
 	end
 
-	local function RecurseDependencies(Child, Branch, Repo, Root)
+	local function RecurseDependencies(Child, Branch, Repo)
 		print("Downloading package " .. Child.Name)
 
 		Branch = Branch or GetDefaultBranch(Repo)
 		local Contents = GetContents(Child.Parent, Branch, Repo)
 
 		for _, File in pairs(Contents) do
-			ProcessLib(File, Repo, Branch, if Root then nil else Child.Name)
+			if File.FullPath == Main.FullPath then continue end
+			if File.Path == Child.Data.main then continue end
+			ProcessLib(File, Repo, Branch, Child.Name)
 		end
 
 		if Child.Data.dependencies then
-			for drepo, dpkg in pairs(Child.Data.dependencies) do
+			for drepo, dpkgs in pairs(Child.Data.dependencies) do
 				local searchRepo, searchBranch
 				local split = string.split(drepo, "#")
 		
 				searchRepo = split[1]
-				if #split0 > 1 then
+				if #split > 1 then
 					searchBranch = split[2]
 				end
 
 				local dependencyPackages = GetPkgs("/", searchBranch, searchRepo)
-
-				local dependency = dependencyPackages[dpkg]
-				if dependency then
-					RecurseDependencies(dependency, searchBranch, searchRepo)
+				
+				for _, dpkg in pairs(dpkgs) do
+					local dependency = dependencyPackages[dpkg]
+					if dependency then
+						RecurseDependencies(dependency, searchBranch, searchRepo)
+					end
 				end
 			end
 		end
 	end
 
-	RecurseDependencies(Pkg, nil, Settings.GithubRepo, true)
+	RecurseDependencies(Pkg, nil, Settings.GithubRepo)
 
 	local Runnable = PrependLibs({Source = MainData, Path = Main.FullPath, PackageName = name}, libs)
+
+	local split = Runnable:split("\n")
+
+	for i = 1, #split do
+		print(i, "   ", split[i])
+	end
 
 	NS(Runnable, workspace)
 end

@@ -12,7 +12,12 @@ local require = function(module)
     end
 
     -- search in local dir
+
     local foundScript = __scripts[module]
+
+    if not foundScript and #module > #PKG_NAME then
+        foundScript = __scripts[module:sub(#PKG_NAME + 1)]
+    end
 
     if foundScript then
         -- locals transfer over from the original main.lua script (which is sort of bad but shhh)
