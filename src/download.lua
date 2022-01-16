@@ -126,15 +126,16 @@ local function GetPkgs(StartPath, Branch, Repo)
 end
 
 local function PrependLibs(target, libs)
-	local start = "local PKG_ROOT = \"" .. Settings.GithubRepo "\"\n"
+	local start = "local PKG_ROOT = \"" .. Settings.GithubRepo .. "\"\n"
+	start = start .. "local PKG_NAME = \"" .. target.PackageName .. "\""
 	start = start .. "local PATH = \"" .. target.Path .. "\"\n"
-	start = start .. ("local __stdlibs = [===[%s]===]"):format(stdlibs)
+	start = start .. ("local __stdlibs = [===[%s]===]\n"):format(stdlibs)
 
 	-- require resolve
 	start = start .. "local __scripts = {\n"
 
 	for k, v in pairs(libs) do
-		start = start .. ("[\"%s\"] = { Source = [===[%s]===], Parent = \"%s\" }"):format(k, v.Source, v.Parent)
+		start = start .. ("\t[\"%s\"] = { Source = [===[%s]===], Path = \"%s\", Parent = \"%s\" },\n"):format(k, v.Source, v.Path, v.Parent)
 	end
 
 	start = start .. "}\n\n"
@@ -147,48 +148,62 @@ local function RunPkg(name)
 	local Pkgs = GetPkgs()
 	local Pkg = Pkgs[name]
 
-	if Pkg and Pkg.Data and Pkg.Data.main then
-		local libs = {}
+	assert(Pkg, "No package found named " .. name)
+	assert(Pkg.Data, "Malformed package " .. name)
+	assert(Pkg.Data.main, "Can't run package " .. name)
 
-		local PkgContents = GetContents(Pkg.Parent, nil, Settings.GithubRepo)
+	local PkgContents = GetContents(Pkg.Parent, nil, Settings.GithubRepo)
+	local Main
 
-		local function ProcessLib(File, Parent)
-			if File.Path:find("%.lua$") then
-				local original = Parent
-				if Parent then
-					Parent = Parent .. "/"
-				else
-					Parent = ""
-				end
-
-				libs[Parent .. File.Name] = { Source = File.Data, Path = File.Path, Parent = original or "root" }
-			end
+	for _, v in pairs(PkgContents) do
+		if v.Path == Pkg.Data.main then
+			print("DEBUG: Found main! " .. v.Path)
+			Main = v
 		end
-
-		local function RecurseDependencies(Child, Repo)
-			print("Downloading package " .. Child.Name)
-			local Contents = GetContents(Child.Parent, nil, Repo)
-
-			for _, File in pairs(Contents) do
-				ProcessLib(File, Child.Name)
-			end
-
-			if Child.dependencies then
-				for k, v in pairs(Child.dependencies) do
-					local dependencyPackages = GetPkgs("/", nil, k)
-
-					local dependency = dependencyPackages[v]
-					if dependency then
-						RecurseDependencies(dependency, k)
-					end
-				end
-			end
-		end
-
-		RecurseDependencies(Pkg, Settings.GithubRepo)
-
-		
 	end
+
+	assert(Main, Pkg.Data.main .. " not found!")
+
+	local libs = {}
+
+	local function ProcessLib(File, Parent)
+		if File.Path:find("%.lua$") then
+			local original = Parent
+			if Parent then
+				Parent = Parent .. "/"
+			else
+				Parent = ""
+			end
+
+			libs[Parent .. File.Path] = { Source = File.Data, __named = File.Path, Path = File.FullPath, Parent = original or "" }
+		end
+	end
+
+	local function RecurseDependencies(Child, Repo, Root)
+		print("Downloading package " .. Child.Name)
+		local Contents = GetContents(Child.Parent, nil, Repo)
+
+		for _, File in pairs(Contents) do
+			ProcessLib(File, if Root then nil else Child.Name)
+		end
+
+		if Child.dependencies then
+			for k, v in pairs(Child.dependencies) do
+				local dependencyPackages = GetPkgs("/", nil, k)
+
+				local dependency = dependencyPackages[v]
+				if dependency then
+					RecurseDependencies(dependency, k)
+				end
+			end
+		end
+	end
+
+	RecurseDependencies(Pkg, Settings.GithubRepo, true)
+
+	local Runnable = PrependLibs(Main.Data, libs)
+
+	NS(Runnable, workspace)
 end
 
 ---- end of package management
@@ -270,21 +285,10 @@ LocalPlayer.Chatted:Connect(function(Message)
 		end
 	end
 	
-	if Command == "/load" or Command == "/loadcl" then
+	if Command == "/load" then
 		IsValid()
-		assert(Value,"Path is missing.")
-		
-		local Data = Fetch(Value)
-		
-		-- server
-		if Command == "/load" then
-			NS(Data,workspace)
-		end
-		
-		-- client
-		if Command == "/loadcl" then
-			NLS(Data,LocalPlayer.Backpack)
-		end
+		assert(Value,"Package argument is missing.")
+		RunPkg(Value)
 	end
 	
 	if Command == "/getmain" then

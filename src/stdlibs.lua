@@ -16,6 +16,7 @@ local require = function(module)
 
     if foundScript then
         local start = "local PKG_ROOT = \"" .. foundScript.Repo "\"\n"
+        start = start .. "local PKG_NAME = \"" .. foundTarget.Parent .. "\""
         start = start .. "local PATH = \"" .. foundScript.Path .. "\"\n"
         start = start .. ("local __stdlibs = [===[%s]===]"):format(stdlibs)
 
@@ -23,7 +24,14 @@ local require = function(module)
         start = start .. "local __scripts = {\n"
 
         for k, v in pairs(__scripts) do
-            start = start .. ("[\"%s\"] = { Source = [===[%s]===], Root = \"%s\" }"):format(k, v.Source, v.Root)
+            local name = k
+            if v.Parent == "" then
+                name = PKG_NAME .. v.__named
+            end
+            if v.Parent == foundTarget.Parent then
+                name = v.__named
+            end
+            start = start .. ("\t[\"%s\"] = { Source = [===[%s]===], __named = \"%s\", Path = \"%s\", Parent = \"%s\" },\n"):format(name, v.Source, v.__named, v.Path, v.Parent)
         end
 
         start = start .. "}\n\n"
