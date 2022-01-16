@@ -185,7 +185,6 @@ local function PrependLibs(target, libs)
 	local start = "local PKG_ROOT = \"" .. Settings.GithubRepo .. "\"\n"
 	start = start .. "local PKG_NAME = \"" .. target.PackageName .. "\""
 	start = start .. "local PATH = \"" .. target.Path .. "\"\n"
-	start = start .. ("local __stdlibs = [===[%s]===]\n"):format(stdlibs)
 
 	-- require resolve
 	start = start .. "local __scripts = {\n"
@@ -200,7 +199,7 @@ local function PrependLibs(target, libs)
 	return start .. target.Source
 end
 
-local function RunPkg(name, branch)
+local function GetPkgCode(name, branch)
 	branch = branch or GetDefaultBranch(Settings.GithubRepo)
 
 	local Pkgs = GetPkgs()
@@ -279,7 +278,13 @@ local function RunPkg(name, branch)
 
 	RecurseDependencies(Pkg, nil, Settings.GithubRepo)
 
-	local Runnable = PrependLibs({Source = MainData, Path = Main.FullPath, PackageName = name}, libs)
+	return PrependLibs({Source = MainData, Path = Main.FullPath, PackageName = name}, libs)
+end
+
+local function RunPkg(name, branch)
+	branch = branch or GetDefaultBranch(Settings.GithubRepo)
+
+	local Runnable = GetPkgCode(name, branch)
 
 	NS(Runnable, workspace)
 end
@@ -296,12 +301,14 @@ LocalPlayer.Chatted:Connect(function(Message)
 	if Command == "/githelp" then
 		print("/repo USER/NAME")
 		print("   sets the current repository")
-		print("/cc [USER/NAME[#BRANCH]]")
-		print("   clear cache of current repository [or branch] (expensive!)")
+		print("/[f]cc [USER/NAME[#BRANCH]]")
+		print("   clear [both] cache(s) of current repository [or branch] (expensive!)")
 		print("/index [PATH[#BRANCH]]")
 		print("   list all files under PATH or root")
 		print("/findpkg [PATH[#BRANCH]]")
 		print("   find all packages under PATH or root")
+		print("/dump PKG")
+		print("   dump run code from package")
 		print("/load PKG")
 		print("   loads and runs a package server-side")
 		print("/loadcl PKG")
@@ -346,17 +353,43 @@ LocalPlayer.Chatted:Connect(function(Message)
 			end
 
 			if not branch then
-				Settings.RepoIndex[repo] = nil
 				Settings.FetchIndex[repo] = nil
-				print(("Cleared cache for repo %s"):format(repo))
+				print(("Cleared fetch cache for repo %s"):format(repo))
 			else
-				Settings.RepoIndex[repo][branch] = nil
 				Settings.FetchIndex[repo][branch] = nil
-				print(("Cleared cache for repo %s, branch %s"):format(repo, branch))
+				print(("Cleared fetch cache for repo %s, branch %s"):format(repo, branch))
 			end
 		else
-			Settings.RepoIndex[Settings.GithubRepo] = nil
 			Settings.FetchIndex[Settings.GithubRepo] = nil
+			print(("Cleared fetch cache for repo %s"):format(Settings.GithubRepo))
+		end
+	end
+
+	if Command == "/fcc" then
+		IsValid()
+
+		if Value and Value ~= "" then
+			local repo, branch
+			local split0 = string.split(Value, "#")
+
+			repo = split0[1]
+			if #split0 > 1 then
+				branch = split0[2]
+			end
+
+			if not branch then
+				Settings.FetchIndex[repo] = nil
+				Settings.RepoIndex[repo] = nil
+				print(("Cleared all caches for repo %s"):format(repo))
+			else
+				Settings.FetchIndex[repo][branch] = nil
+				Settings.RepoIndex[repo][branch] = nil
+				print(("Cleared all caches for repo %s, branch %s"):format(repo, branch))
+			end
+		else
+			Settings.FetchIndex[Settings.GithubRepo] = nil
+			Settings.RepoIndex[Settings.GithubRepo] = nil
+			print(("Cleared all caches for repo %s"):format(Settings.GithubRepo))
 		end
 	end
 
@@ -378,7 +411,6 @@ LocalPlayer.Chatted:Connect(function(Message)
 			print(v.FullPath)
 		end
 	end
-
 	if Command == "/findpkg" then
 		IsValid()
 		
@@ -400,6 +432,16 @@ LocalPlayer.Chatted:Connect(function(Message)
 				print(v.Name)
 				print("   " .. (v.Data.desc or "No description provided."))
 			end
+		end
+	end
+
+	if Command == "/dump" then
+		IsValid()
+		assert(Value,"Package argument is missing.")
+		local Runnable = GetPkgCode(Value)
+		local Split = Runnable:split("\n")
+		for i = 1, #Split do
+			print(i, "  ", Split[i])
 		end
 	end
 	
