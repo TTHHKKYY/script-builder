@@ -198,7 +198,7 @@ local function PrependLibs(target, libs, preprocessor)
 
 	local OutSource = target.Source
 	if preprocessor and (#preprocessor > 0) then
-		start = start .. "---- preprocessor start"
+		start = start .. "---- preprocessor start\n\n"
 		for _, v in pairs(preprocessor) do
 			local success, err = pcall(function()
 				local processor = loadstring(v)()
@@ -216,7 +216,7 @@ local function PrependLibs(target, libs, preprocessor)
 				warn("Preprocessor failure! Error: " .. err)
 			end
 		end
-		start = start .. "---- end of preprocessor"
+		start = start .. "\n---- end of preprocessor\n\n"
 	end
 	return start .. OutSource
 end
