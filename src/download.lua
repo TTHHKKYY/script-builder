@@ -283,9 +283,9 @@ LocalPlayer.Chatted:Connect(function(Message)
 		print("   sets the current repository")
 		print("/cc USER/NAME[#BRANCH]")
 		print("   clear cache of repository [and branch] (expensive!)")
-		print("/index PATH")
+		print("/index PATH[#BRANCH]")
 		print("   list all files under PATH or root")
-		print("/findpkg PATH")
+		print("/findpkg PATH[#BRANCH]")
 		print("   find all packages under PATH or root")
 		print("/load PKG")
 		print("   loads and runs a package server-side")
@@ -316,6 +316,8 @@ LocalPlayer.Chatted:Connect(function(Message)
 	end
 	
 	if Command == "/cc" then
+		IsValid()
+
 		local repo, branch
 		local split0 = string.split(Value, "#")
 
@@ -324,40 +326,49 @@ LocalPlayer.Chatted:Connect(function(Message)
 			branch = split0[2]
 		end
 
-
+		if not branch then
+			Settings.RepoIndex[repo] = nil
+			Settings.FetchIndex[repo] = nil
+			print("Cleared cache for repo %s":format(repo))
+		else
+			Settings.RepoIndex[repo][branch] = nil
+			print("Cleared cache for repo %s, branch %s":format(repo, branch))
+		end
 	end
 
 	if Command == "/index" then
 		IsValid()
-		
-		local function Recurse(Path)
-			local List = Http:GetAsync(string.format("https://api.github.com/repos/%s/contents/%s",Settings.GithubRepo,Path))
-			local ListData = Http:JSONDecode(List)
-			
-			for _,File in pairs(ListData) do
-				if File["type"] == "dir" then
-					print("/" .. File["path"] .. "/")
-					Recurse(File["path"])
-				end
-				if File["type"] == "file" then
-					print("/" .. File["path"])
-				end
-			end
+
+		local path, branch
+		local split0 = string.split(Value, "#")
+
+		path = split0[1]
+		if #split0 > 1 then
+			branch = split0[2]
 		end
 		
-		print("Index of the default branch:")
-		Recurse(Value or "/")
+		for _, v in pairs(GetContents(path, branch)) do
+			print(v.FullPath)
+		end
 	end
 
 	if Command == "/findpkg" then
 		IsValid()
+		
+		local path, branch
+		local split0 = string.split(Value, "#")
 
-		local Packages = GetPkgs(Value)
+		path = split0[1]
+		if #split0 > 1 then
+			branch = split0[2]
+		end
+
+		local Packages = GetPkgs(path, branch)
 
 		for _, v in pairs(Packages) do
 			if v.Name and v.Data then
 				print(v.Name)
-				print("\t" .. (v.Data.desc or "No description provided."))
+				print("   " .. (v.Data.desc or "No description provided."))
 			end
 		end
 	end
