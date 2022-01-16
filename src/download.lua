@@ -285,9 +285,9 @@ LocalPlayer.Chatted:Connect(function(Message)
 		print("   sets the current repository")
 		print("/cc USER/NAME[#BRANCH]")
 		print("   clear cache of repository [and branch] (expensive!)")
-		print("/index PATH[#BRANCH]")
+		print("/index [PATH[#BRANCH]]")
 		print("   list all files under PATH or root")
-		print("/findpkg PATH[#BRANCH]")
+		print("/findpkg [PATH[#BRANCH]]")
 		print("   find all packages under PATH or root")
 		print("/load PKG")
 		print("   loads and runs a package server-side")
@@ -342,11 +342,14 @@ LocalPlayer.Chatted:Connect(function(Message)
 		IsValid()
 
 		local path, branch
-		local split0 = string.split(Value, "#")
 
-		path = split0[1]
-		if #split0 > 1 then
-			branch = split0[2]
+		if Value or Value ~= "" then
+			local split0 = string.split(Value, "#")
+
+			path = split0[1]
+			if #split0 > 1 then
+				branch = split0[2]
+			end
 		end
 		
 		for _, v in pairs(GetContents(path, branch)) do
@@ -358,11 +361,14 @@ LocalPlayer.Chatted:Connect(function(Message)
 		IsValid()
 		
 		local path, branch
-		local split0 = string.split(Value, "#")
 
-		path = split0[1]
-		if #split0 > 1 then
-			branch = split0[2]
+		if Value or Value ~= "" then
+			local split0 = string.split(Value, "#")
+
+			path = split0[1]
+			if #split0 > 1 then
+				branch = split0[2]
+			end
 		end
 
 		local Packages = GetPkgs(path, branch)
