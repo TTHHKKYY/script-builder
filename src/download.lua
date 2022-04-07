@@ -5,7 +5,7 @@ print("Say /githelp for commands and usage.")
 
 local LocalPlayer = owner
 
--- setup global variables, to avoid data loss after using g/ns
+-- use globals to avoid data loss after using g/ns
 if not _G[LocalPlayer] then
 	_G[LocalPlayer] = {}
 end
@@ -27,7 +27,7 @@ LocalPlayer.Chatted:Connect(function(Message)
 	local Command = Arguments[1]
 	local Value = Arguments[2]
 	
-	-- /help is already in use by the default chat scripts
+	-- /help is already in use by the default chat system
 	if Command == "/githelp" then
 		print("/user NAME")
 		print("/repo NAME")
@@ -36,7 +36,7 @@ LocalPlayer.Chatted:Connect(function(Message)
 		print("/loadcl BRANCH/PATH")
 		print("/getmain")
 		
-		print("") -- newline
+		print() -- newline
 		print("Current user: " .. Settings.GithubUser)
 		print("Current repository: " .. Settings.GithubRepo)
 	end
