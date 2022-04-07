@@ -58,6 +58,7 @@ LocalPlayer.Chatted:Connect(function(Message)
 		IsValid()
 		
 		local ShouldRecurse = Arguments[3]
+		local Path = Value or "/"
 		
 		function Recurse(Path)
 			local List = Http:GetAsync(string.format("https://api.github.com/repos/%s/%s/contents/%s",Settings.GithubUser,Settings.GithubRepo,Path))
@@ -77,8 +78,8 @@ LocalPlayer.Chatted:Connect(function(Message)
 			end
 		end
 		
-		print("Index of the default branch:")
-		Recurse(Value or "/")
+		print("Index of " .. Path)
+		Recurse(Path)
 	end
 	
 	if Command == "/load" or Command == "/loadcl" then
