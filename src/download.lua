@@ -31,7 +31,7 @@ LocalPlayer.Chatted:Connect(function(Message)
 	if Command == "/githelp" then
 		print("/user NAME")
 		print("/repo NAME")
-		print("/index [PATH]")
+		print("/index [PATH] [RECURSE]")
 		print("/load BRANCH/PATH")
 		print("/loadcl BRANCH/PATH")
 		print("/getmain")
@@ -57,6 +57,8 @@ LocalPlayer.Chatted:Connect(function(Message)
 	if Command == "/index" then
 		IsValid()
 		
+		local ShouldRecurse = Arguments[3]
+		
 		function Recurse(Path)
 			local List = Http:GetAsync(string.format("https://api.github.com/repos/%s/%s/contents/%s",Settings.GithubUser,Settings.GithubRepo,Path))
 			local ListData = Http:JSONDecode(List)
@@ -64,7 +66,10 @@ LocalPlayer.Chatted:Connect(function(Message)
 			for _,File in pairs(ListData) do
 				if File["type"] == "dir" then
 					print("/" .. File["path"] .. "/")
-					Recurse(File["path"])
+					
+					if ShouldRecurse then
+						Recurse(File["path"])
+					end
 				end
 				if File["type"] == "file" then
 					print("/" .. File["path"])
