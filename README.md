@@ -21,9 +21,9 @@ Sets the repository to search, or load files from.
 <br>
 
 ```
-/index
+/index [PATH] [RECURSE]
 ```
-List every file in this repository, recursing through directories.
+List every file in this repository, optionally recursing through directories.
 <br>
 <br>
 
