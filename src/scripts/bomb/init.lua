@@ -11,7 +11,9 @@ end
 
 local function AddCSLuaFile(file)
 	print("Get Client " .. BaseUrl .. file)
-	NLS(Http:GetAsync(BaseUrl .. "client.lua"),LocalPlayer.Backpack)
+	NLS(Http:GetAsync(BaseUrl .. "client.lua"),LocalPlayer.PlayerGui)
+	-- putting the script in PlayerGui so it wont be removed
+	-- upon respawning
 end
 
 include("server.lua")
