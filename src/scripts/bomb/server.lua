@@ -35,17 +35,20 @@ local Bombs = {}
 
 Detonate.OnServerEvent:Connect(function(Player)
 	if Player == LocalPlayer then
-		for _,Part in pairs(Bombs) do
-			local Explosion = Instance.new("Explosion")
+		for i,Part in pairs(Bombs) do
+			local Success,Explosion = pcall(Instance.new,"Explosion")
 			
-			Explosion.BlastRadius = 30
-			Explosion.Position = Part.Position
-			Explosion.Parent = workspace
+			if Success then
+				Explosion.BlastRadius = 30
+				Explosion.Position = Part.Position
+				Explosion.Parent = workspace
+			else
+				warn("Unable to create an explosion.")
+			end
 			
 			Part:Destroy()
+			Bombs[i] = nil
 		end
-		
-		Bombs = {}
 	end
 end)
 
