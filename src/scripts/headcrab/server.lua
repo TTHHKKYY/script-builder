@@ -133,9 +133,9 @@ Remote.OnServerEvent:Connect(function(Player,Event,...)
 				Explosion.Position = Location.p
 			end
 			
-			table.insert(Canisters,Canister)
-			
 			---- wait for launch message
+			
+			table.insert(Canisters,Canister)
 			
 			while true do
 				local Player,Event = Remote.OnServerEvent:Wait()

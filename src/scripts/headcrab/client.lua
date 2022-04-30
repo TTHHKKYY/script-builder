@@ -35,8 +35,14 @@ Mouse.KeyDown:Connect(function(Key)
 		Remote:FireServer("unanchor")
 	end
 	if Key == "n" then
+		ClearAdornments()
 		Remote:FireServer("clear")
 	end
 end)
 
 ClearAdornments()
+
+print("Press K to arm a headcrab canister.")
+print("Press L to launch headcrab canisters.")
+print("Press M to unanchor all headcrab canisters.")
+print("Press N to clear all headcrab canisters.")
