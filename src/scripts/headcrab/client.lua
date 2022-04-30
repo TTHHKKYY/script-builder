@@ -42,7 +42,7 @@ end)
 
 ClearAdornments()
 
-print("Press K to arm a headcrab canister.")
-print("Press L to launch headcrab canisters.")
+print("Press K to create a headcrab canister.")
+print("Press L to launch all headcrab canisters.")
 print("Press M to unanchor all headcrab canisters.")
 print("Press N to clear all headcrab canisters.")

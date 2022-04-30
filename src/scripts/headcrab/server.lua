@@ -42,7 +42,7 @@ Remote.OnServerEvent:Connect(function(Player,Event,...)
 			Canister.Anchored = true
 			Canister.Locked = true
 			Canister.Size = Vector3.new(4,4,12.5)
-			Canister.CFrame = CFrame.new(math.random(-1000,1000),3000,math.random(-1000,1000)) + Location.p
+			Canister.CFrame = CFrame.new(math.random(-1000,1000),3000,math.random(-1000,1000)) * CFrame.Angles(math.rad(-90),0,0) + Location.p
 			
 			local Smoke = NewInstance("Smoke")
 			
@@ -135,8 +135,6 @@ Remote.OnServerEvent:Connect(function(Player,Event,...)
 			
 			---- wait for launch message
 			
-			table.insert(Canisters,Canister)
-			
 			while true do
 				local Player,Event = Remote.OnServerEvent:Wait()
 				
@@ -156,6 +154,8 @@ Remote.OnServerEvent:Connect(function(Player,Event,...)
 			if Land then Land:Play() end
 			
 			if Explosion then Explosion.Parent = workspace end
+			
+			table.insert(Canisters,Canister)
 		end
 		
 		if Event == "unanchor" then
