@@ -177,9 +177,8 @@ Remote.OnServerEvent:Connect(function(Player,Event,...)
 		end
 		
 		if Event == "clear" then
-			for i,Part in pairs(GetCanisters()) do
+			for _,Part in pairs(GetCanisters()) do
 				Part:Destroy()
-				Canisters[i] = nil
 			end
 		end
 	end
