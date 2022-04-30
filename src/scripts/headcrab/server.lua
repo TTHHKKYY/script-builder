@@ -68,6 +68,20 @@ Remote.OnServerEvent:Connect(function(Player,Event,...)
 			
 			---- trail
 			
+			local TrailStart = NewInstance("Attachment")
+			
+			if TrailStart then
+				TrailStart.CFrame = CFrame.new()
+				TrailStart.Parent = Canister
+			end
+			
+			local TrailEnd = NewInstance("Attachment")
+			
+			if TrailEnd then
+				TrailEnd.CFrame = CFrame.new(0,0,3)
+				TrailEnd.Parent = Canister
+			end
+			
 			local Trail = NewInstance("Trail")
 			
 			if Trail then
@@ -87,20 +101,6 @@ Remote.OnServerEvent:Connect(function(Player,Event,...)
 				Trail.Attachment0 = TrailStart
 				Trail.Attachment1 = TrailEnd
 				Trail.Parent = Canister
-			end
-			
-			local TrailStart = NewInstance("Attachment")
-			
-			if TrailStart then
-				TrailStart.CFrame = CFrame.new()
-				TrailStart.Parent = Canister
-			end
-			
-			local TrailEnd = NewInstance("Attachment")
-			
-			if TrailEnd then
-				TrailEnd.CFrame = CFrame.new(0,0,3)
-				TrailEnd.Parent = Canister
 			end
 			
 			----
