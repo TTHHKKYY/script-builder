@@ -31,6 +31,12 @@ Mouse.KeyDown:Connect(function(Key)
 		ClearAdornments()
 		Remote:FireServer("launch")
 	end
+	if Key == "m" then
+		Remote:FireServer("unanchor")
+	end
+	if Key == "n" then
+		Remote:FireServer("clear")
+	end
 end)
 
 ClearAdornments()

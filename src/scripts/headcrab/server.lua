@@ -15,6 +15,8 @@ local Remote = Instance.new("RemoteEvent")
 Remote.Name = "HeadCrabCanister"
 Remote.Parent = LocalPlayer
 
+local Canisters = {}
+
 local function NewInstance(Class)
 	local Success,Object = pcall(Instance.new,Class)
 	
@@ -131,6 +133,8 @@ Remote.OnServerEvent:Connect(function(Player,Event,...)
 				Explosion.Position = Location.p
 			end
 			
+			table.insert(Canisters,Canister)
+			
 			---- wait for launch message
 			
 			while true do
@@ -152,6 +156,23 @@ Remote.OnServerEvent:Connect(function(Player,Event,...)
 			if Land then Land:Play() end
 			
 			if Explosion then Explosion.Parent = workspace end
+		end
+		
+		if Event == "unanchor" then
+			for _,Part in pairs(Canisters) do
+				Part.Anchored = false
+				Part.Locked = false
+				
+				Part.Velocity = Vector3.new(50,50,50) * ((math.random() - 0.5) * 2)
+				Part.RotVelocity = Vector3.new(90,90,90) * ((math.random() - 0.5) * 2)
+			end
+		end
+		
+		if Event == "clear" then
+			for i,Part in pairs(Canisters) do
+				Part:Destroy()
+				Canisters[i] = nil
+			end
 		end
 	end
 end)
