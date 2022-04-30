@@ -15,6 +15,16 @@ local Remote = Instance.new("RemoteEvent")
 Remote.Name = "HeadCrabCanister"
 Remote.Parent = LocalPlayer
 
+local function NewInstance(Class)
+	local Success,Object = pcall(Instance.new,Class)
+	
+	if Success then
+		return Object
+	else
+		warn("Unable to create " .. Class)
+	end
+end
+
 Remote.OnServerEvent:Connect(function(Player,Event,...)
 	local arg = {...}
 	
@@ -22,70 +32,106 @@ Remote.OnServerEvent:Connect(function(Player,Event,...)
 		if Event == "place" then
 			local Location = arg[1]
 			
-			local Canister = Instance.new("Part")
-			local Smoke = Instance.new("Smoke")
-			local Mesh = Instance.new("FileMesh")
+			---- canister
+			local Canister = NewInstance("Part")
 			
-			Smoke.Enabled = false
-			Smoke.Opacity = 0.1
-			Smoke.Size = 1
-			Smoke.RiseVelocity = 0
-			Smoke.Color = Color3.new(1,1,1)
-			Smoke.Parent = Canister
-			
-			Mesh.MeshId = "rbxassetid://9485186641"
-			Mesh.TextureId = "rbxassetid://9485186557"
-			Mesh.Scale = Vector3.new(0.25,0.25,0.25)
-			Mesh.Parent = Canister
-			
-			local Hiss = Instance.new("Sound")
-			local Land = Instance.new("Sound")
-			
-			Hiss.Looped = true
-			Hiss.Volume = 2
-			Hiss.SoundId = "rbxassetid://5057582133"
-			Hiss.Parent = Canister
-			
-			Land.Volume = 1
-			Land.SoundId = "rbxassetid://7990171197"
-			Land.Parent = Canister
-			
-			local Trail = Instance.new("Trail")
-			local TrailStart = Instance.new("Attachment")
-			local TrailEnd = Instance.new("Attachment")
-			
-			TrailStart.CFrame = CFrame.new()
-			TrailStart.Parent = Canister
-			
-			TrailEnd.CFrame = CFrame.new(0,0,3)
-			TrailEnd.Parent = Canister
-			
-			Trail.Color = ColorSequence.new
-						{
-							ColorSequenceKeypoint.new(0,Color3.new(1,1,1)),
-							ColorSequenceKeypoint.new(1,Color3.new(1,1,1))
-						}
-			
-			Trail.Transparency = NumberSequence.new
-						{
-							NumberSequenceKeypoint.new(0.0,0),
-							NumberSequenceKeypoint.new(0.5,0),
-							NumberSequenceKeypoint.new(1.0,1)
-						}
-			
-			Trail.Attachment0 = TrailStart
-			Trail.Attachment1 = TrailEnd
-			Trail.Parent = Canister
+			assert(Canister,"Unable to create canister part. Please slow down.")
 			
 			Canister.Anchored = true
 			Canister.Locked = true
 			Canister.Size = Vector3.new(4,4,12.5)
 			Canister.CFrame = CFrame.new(math.random(-1000,1000),3000,math.random(-1000,1000)) + Location.p
 			
-			local Explosion = Instance.new("Explosion")
+			local Smoke = NewInstance("Smoke")
 			
-			Explosion.BlastRadius = 20
-			Explosion.Position = Location.p
+			if Smoke then
+				Smoke.Enabled = false
+				Smoke.Opacity = 0.1
+				Smoke.Size = 1
+				Smoke.RiseVelocity = 0
+				Smoke.Color = Color3.new(1,1,1)
+				Smoke.Parent = Canister
+			end
+			
+			local Mesh = NewInstance("FileMesh")
+			
+			if Mesh then
+				Mesh.MeshId = "rbxassetid://9485186641"
+				Mesh.TextureId = "rbxassetid://9485186557"
+				Mesh.Scale = Vector3.new(0.25,0.25,0.25)
+				Mesh.Parent = Canister
+			end
+			
+			----
+			
+			---- trail
+			
+			local Trail = NewInstance("Trail")
+			
+			if Trail then
+				Trail.Color = ColorSequence.new
+						{
+							ColorSequenceKeypoint.new(0,Color3.new(1,1,1)),
+							ColorSequenceKeypoint.new(1,Color3.new(1,1,1))
+						}
+				
+				Trail.Transparency = NumberSequence.new
+						{
+							NumberSequenceKeypoint.new(0.0,0),
+							NumberSequenceKeypoint.new(0.5,0),
+							NumberSequenceKeypoint.new(1.0,1)
+						}
+				
+				Trail.Attachment0 = TrailStart
+				Trail.Attachment1 = TrailEnd
+				Trail.Parent = Canister
+			end
+			
+			local TrailStart = NewInstance("Attachment")
+			
+			if TrailStart then
+				TrailStart.CFrame = CFrame.new()
+				TrailStart.Parent = Canister
+			end
+			
+			local TrailEnd = NewInstance("Attachment")
+			
+			if TrailEnd then
+				TrailEnd.CFrame = CFrame.new(0,0,3)
+				TrailEnd.Parent = Canister
+			end
+			
+			----
+			
+			---- sound effects
+			
+			local Hiss = NewInstance("Sound")
+			
+			if Hiss then
+				Hiss.Looped = true
+				Hiss.Volume = 0.7
+				Hiss.SoundId = "rbxassetid://5057582133"
+				Hiss.Parent = Canister
+			end
+			
+			local Land = NewInstance("Sound")
+			
+			if Land then
+				Land.Volume = 0.3
+				Land.SoundId = "rbxassetid://7990171197"
+				Land.Parent = Canister
+			end
+			
+			----
+			
+			local Explosion = NewInstance("Explosion")
+			
+			if Explosion then
+				Explosion.BlastRadius = 20
+				Explosion.Position = Location.p
+			end
+			
+			---- wait for launch message
 			
 			while true do
 				local Player,Event = Remote.OnServerEvent:Wait()
@@ -100,12 +146,12 @@ Remote.OnServerEvent:Connect(function(Player,Event,...)
 			TweenService:Create(Canister,CanisterTween,{CFrame = Location * CFrame.Angles(math.rad(-90),0,0)}):Play()
 			task.wait(CanisterTween.Time)
 			
-			Explosion.Parent = workspace
+			if Smoke then Smoke.Enabled = true end
 			
-			Smoke.Enabled = true
+			if Hiss then Hiss:Play() end
+			if Land then Land:Play() end
 			
-			Hiss:Play()
-			Land:Play()
+			if Explosion then Explosion.Parent = workspace end
 		end
 	end
 end)
