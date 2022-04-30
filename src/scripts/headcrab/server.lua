@@ -15,8 +15,6 @@ local Remote = Instance.new("RemoteEvent")
 Remote.Name = "HeadCrabCanister"
 Remote.Parent = LocalPlayer
 
-local Canisters = {}
-
 local function NewInstance(Class)
 	local Success,Object = pcall(Instance.new,Class)
 	
@@ -25,6 +23,17 @@ local function NewInstance(Class)
 	else
 		warn("Unable to create " .. Class)
 	end
+end
+
+local function GetCanisters()
+	local Canisters = {}
+	
+	for _,Part in pairs(workspace:GetChildren()) do
+		if Part.Name == "HeadCrabCanister" then
+			table.insert(Canisters,Part)
+		end
+	end
+	return Canisters
 end
 
 Remote.OnServerEvent:Connect(function(Player,Event,...)
@@ -43,6 +52,7 @@ Remote.OnServerEvent:Connect(function(Player,Event,...)
 			Canister.Locked = true
 			Canister.Size = Vector3.new(4,4,12.5)
 			Canister.CFrame = CFrame.new(math.random(-1000,1000),3000,math.random(-1000,1000)) * CFrame.Angles(math.rad(-90),0,0) + Location.p
+			Canister.Name = "HeadCrabCanister"
 			
 			local Smoke = NewInstance("Smoke")
 			
@@ -154,12 +164,10 @@ Remote.OnServerEvent:Connect(function(Player,Event,...)
 			if Land then Land:Play() end
 			
 			if Explosion then Explosion.Parent = workspace end
-			
-			table.insert(Canisters,Canister)
 		end
 		
 		if Event == "unanchor" then
-			for _,Part in pairs(Canisters) do
+			for _,Part in pairs(GetCanisters()) do
 				Part.Anchored = false
 				Part.Locked = false
 				
@@ -169,7 +177,7 @@ Remote.OnServerEvent:Connect(function(Player,Event,...)
 		end
 		
 		if Event == "clear" then
-			for i,Part in pairs(Canisters) do
+			for i,Part in pairs(GetCanisters()) do
 				Part:Destroy()
 				Canisters[i] = nil
 			end
