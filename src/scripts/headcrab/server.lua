@@ -17,6 +17,8 @@ Remote.Parent = LocalPlayer
 
 local Extras
 
+print("Headcrab v1.1 loaded")
+
 local function NewInstance(Class)
 	local Success,Object = pcall(Instance.new,Class)
 
