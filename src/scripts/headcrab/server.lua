@@ -29,7 +29,7 @@ local function GetCanisters()
 	local Canisters = {}
 	
 	for _,Part in pairs(workspace:GetChildren()) do
-		if Part.Name == "HeadCrabCanister" then
+		if Part.Name == LocalPlayer.Name .. "HeadCrabCanister" then
 			table.insert(Canisters,Part)
 		end
 	end
@@ -52,7 +52,7 @@ Remote.OnServerEvent:Connect(function(Player,Event,...)
 			Canister.Locked = true
 			Canister.Size = Vector3.new(4,4,12.5)
 			Canister.CFrame = CFrame.new(math.random(-1000,1000),3000,math.random(-1000,1000)) * CFrame.Angles(math.rad(-90),0,0) + Location.p
-			Canister.Name = "HeadCrabCanister"
+			Canister.Name = LocalPlayer.Name .. "HeadCrabCanister"
 			
 			local Smoke = NewInstance("Smoke")
 			
