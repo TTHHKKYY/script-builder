@@ -15,7 +15,8 @@ local Remote = Instance.new("RemoteEvent")
 Remote.Name = "HeadCrabCanister"
 Remote.Parent = LocalPlayer
 
-local Extras
+local Extras = shared.__Extras or {}
+shared.__Extras = Extras
 
 print("Headcrab v1.1 loaded")
 
