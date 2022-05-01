@@ -33,7 +33,7 @@ local function NewInstance(Class)
 		if found then
 			return found
 		end
-		for _, v in pairs(Extras)
+		for _, v in pairs(Extras) do
 			if v:IsA(Class) and v.Parent == nil then
 				return v
 			end
