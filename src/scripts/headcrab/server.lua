@@ -21,6 +21,10 @@ local function NewInstance(Class)
 	if Success then
 		return Object
 	else
+		local found = workspace:FindFirstChildOfClass(Class)
+		if found then
+			return found
+		end
 		warn("Unable to create " .. Class)
 	end
 end
