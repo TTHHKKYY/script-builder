@@ -15,15 +15,28 @@ local Remote = Instance.new("RemoteEvent")
 Remote.Name = "HeadCrabCanister"
 Remote.Parent = LocalPlayer
 
+local Extras
+
 local function NewInstance(Class)
 	local Success,Object = pcall(Instance.new,Class)
-	
+
 	if Success then
+		if Class == "Sound" then
+			table.insert(ExtraSounds, Object)
+		end
+		if Class == "Explosion" then
+			table.insert(ExtraExplosions, Object)
+		end
 		return Object
 	else
 		local found = workspace:FindFirstChildOfClass(Class)
 		if found then
 			return found
+		end
+		for _, v in pairs(Extras)
+			if v:IsA(Class) and v.Parent == nil then
+				return v
+			end
 		end
 		warn("Unable to create " .. Class)
 	end
@@ -182,7 +195,11 @@ Remote.OnServerEvent:Connect(function(Player,Event,...)
 		
 		if Event == "clear" then
 			for _,Part in pairs(GetCanisters()) do
-				Part:Destroy()
+				for _, v in pairs(Part:GetDescendants()) do
+					table.insert(Extras, v)
+					v.Parent = nil
+				end
+				Part.Parent = nil
 			end
 		end
 	end
