@@ -10,7 +10,7 @@ end
 
 local function AddCSLuaFile(file)
 	print("Get Client " .. BaseUrl .. file)
-	NLS(Http:GetAsync(BaseUrl .. "client.lua"),LocalPlayer.Backpack)
+	NLS(Http:GetAsync(BaseUrl .. "client.lua"),LocalPlayer.PlayerGui)
 end
 
 include("server.lua")
