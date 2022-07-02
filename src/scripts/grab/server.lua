@@ -27,10 +27,10 @@ end
 local HeldPart
 
 function Grab.OnServerInvoke(Player,Target)
-	if Player.UserId == LocalPlayer.UserId then
+	if Player == LocalPlayer then
 		if not HeldPart then
 			if Target and not Target.Anchored then
-				Target:SetNetworkOwner(Player)
+				Target:SetNetworkOwner(LocalPlayer)
 				HeldPart = Target
 				return Target
 			end
@@ -40,7 +40,7 @@ function Grab.OnServerInvoke(Player,Target)
 end
 
 Drop.OnServerEvent:Connect(function(Player)
-	if Player.UserId == LocalPlayer.UserId then
+	if Player == LocalPlayer then
 		if HeldPart then
 			HeldPart:SetNetworkOwner(nil)
 			HeldPart:SetNetworkOwnershipAuto()
