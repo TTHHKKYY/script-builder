@@ -27,10 +27,10 @@ end
 local HeldPart
 
 function Grab.OnServerInvoke(Player,Target)
-	if Player == LocalPlayer then
+	if Player.UserId == LocalPlayer.UserId then
 		if not HeldPart then
 			if Target and not Target.Anchored then
-				Target:SetNetworkOwner(LocalPlayer)
+				Target:SetNetworkOwner(Player)
 				HeldPart = Target
 				return Target
 			end
